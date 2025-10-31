@@ -1,0 +1,86 @@
+根据代码库分析，Hunling233/ai-safety-lab 是一个针对 AI 安全性和伦理合规性的测试平台，主要用于对 AI 模型进行自动化安全性、合规性、对抗性和伦理检查。以下是详细解读：
+
+---
+
+## 1. 项目用途
+
+**ai-safety-lab** 旨在构建一套自动化测试流程，对 AI 模型（一般以 API 形式部署）进行多维度安全评估，包括：
+- 对抗攻击（如 prompt injection、图攻击等）检测
+- 伦理与合规性审查（如是否符合欧盟/联合国/美国等 AI 法规和伦理标准）
+- 一致性、可解释性等相关安全测试
+
+该项目主要用于辅助开发者和审查人员发现 AI 系统中的安全与伦理隐患，评估模型是否满足国际规范。
+
+---
+
+## 2. 流程与架构
+
+根据 init_project_structure.py 的结构定义，核心流程如下：
+
+1. **adapters（适配器层）**  
+   用于与不同类型的 AI 模型或服务（如 HTTP API）对接（如 adapters/http_agent.py）。
+
+2. **orchestrator（编排层）**  
+   负责统一调度各类测试套件，对模型发起测试（如 orchestrator/run.py）。
+
+3. **sandbox（沙盒层）**  
+   用于隔离、仿真或模拟模型接口（如 mock_model_server.py，用 FastAPI 模拟模型响应）。
+
+4. **compliance（合规层）**  
+   包含法规和伦理标准（如 eu_ai_act.yaml、un_ethics.yaml），用于自动化合规检测。
+
+5. **reporting（报告层）**  
+   自动生成测试报告，支持 JSON/HTML 格式（如 json_reporter.py, html_reporter.py, templates/report.html.j2）。
+
+6. **testsuites（测试套件）**  
+   包含各种测试方法和脚本：
+   - adversarial（对抗攻击，包括图攻击、prompt injection 等）
+   - consistency（一致性测试）
+   - explainability（可解释性测试）
+   - ethics（伦理合规测试，如 compliance_audit.py）
+
+7. **docker**  
+   部署相关 Dockerfile。
+
+---
+
+## 3. 已开发功能
+
+### 3.1 对抗测试
+- **GraphAttackAgent**: 针对图结构模型的多种攻击模拟，评估模型在节点/边攻击下的鲁棒性（testsuites/adversarial/Σ╜£σ║ƒgraph_attack_agent.py）。
+- **Prompt Injection**: 检测模型是否容易被特殊 prompt 绕过。
+
+### 3.2 伦理合规测试
+- **compliance_audit.py**: 自动化对模型输出进行伦理和合规性打分，检查是否涉及偏见、歧视、暴力等违规内容，并对输出用关键词进行打分，给出违规项和最终合规报告。
+
+### 3.3 沙盒环境
+- **mock_model_server.py**: 用 FastAPI 模拟模型接口，用于测试和开发。
+
+### 3.4 报告生成
+- 支持 JSON 和 HTML 格式自动报告（reporting/json_reporter.py, html_reporter.py）。
+
+### 3.5 项目结构自动初始化
+- init_project_structure.py 可自动生成上述目录和文件框架，方便扩展和复用。
+
+---
+
+## 4. 尚未开发或缺失的功能
+
+- **部分测试套件实现尚不完善**  
+  比如 consistency（multi_seed.py）、explainability（trace_capture.py）等脚本可能只是框架或空文件，具体测试逻辑未实装。
+- **模型管理与多模型对比功能**  
+  目前主要围绕单模型接口，未见多模型/多版本自动化对比与追踪。
+- **高级合规规则扩展**  
+  仅包含了部分法规文件，实际合规检测逻辑未见全部规则实现。
+- **UI 可视化/交互界面**  
+  目前仅支持报告生成，未见前端或交互管理界面。
+- **部分 reporting 模块内容未完善**  
+  比如 HTML 报告的模板和具体渲染逻辑可能还需补充。
+- **自动化 CI/CD 与部署脚本**  
+  Dockerfile 存在，但完整的自动部署、云端集成等未见详细实现。
+
+---
+
+## 总结
+
+本项目以自动化方式对 AI 模型进行安全性和伦理合规性测试，已初步实现对抗攻击检测、伦理合规打分、报告生成等核心功能，但部分测试逻辑和高级功能仍处于开发或设计阶段。整体流程完整，适合扩展和二次开发。
