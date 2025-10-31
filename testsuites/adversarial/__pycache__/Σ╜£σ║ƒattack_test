@@ -1,0 +1,96 @@
+import os
+import matplotlib.pyplot as plt
+from collections import defaultdict
+from graph_tiger.graphs import graph_loader
+from graph_tiger.attacks import Attack
+
+
+class GraphAttackAgent:
+    """
+    GraphAttackAgent
+    用于在智能体工作流中运行网络攻击仿真实验。
+    支持节点/边攻击分析、结果可视化及结构化输出。
+    """
+
+    def __init__(self, output_dir="./plots"):
+        self.output_dir = output_dir
+        os.makedirs(output_dir, exist_ok=True)
+
+    def run_attack_experiments(
+        self,
+        graph_type="ky2",
+        attack_scope="node",
+        runs=10,
+        steps=30,
+        seed=1,
+        include_visual=False
+    ):
+        """
+        在指定图上运行多种攻击仿真。
+        参数:
+            graph_type (str): 图类型，如 'ky2'
+            attack_scope (str): 'node' 或 'edge'
+            runs (int): 每种攻击重复次数
+            steps (int): 攻击步数
+            seed (int): 随机种子
+            include_visual (bool): 是否生成可视化
+        返回:
+            dict: {attack_name: [LCC变化序列]}
+        """
+        graph = graph_loader(graph_type=graph_type, seed=seed)
+
+        base_params = {
+            "runs": runs,
+            "steps": steps,
+            "seed": seed,
+            "plot_transition": include_visual,
+            "gif_animation": include_visual,
+            "gif_snaps": include_visual,
+            "edge_style": None,
+            "node_style": None,
+            "fa_iter": 20
+        }
+
+        if attack_scope == "node":
+            attacks = ['rnd_node', 'id_node', 'rd_node', 'ib_node', 'rb_node']
+        else:
+            attacks = ['rnd_edge', 'id_edge', 'rd_edge', 'ib_edge', 'rb_edge']
+
+        results = {}
+        for attack in attacks:
+            params = base_params.copy()
+            params["attack"] = attack
+            if 'rb' in attack or 'ib' in attack:
+                params["attack_approx"] = int(0.1 * len(graph))
+            else:
+                params["attack_approx"] = None
+
+            atk = Attack(graph, **params)
+            results[attack] = atk.run_simulation()
+
+        return {
+            "graph_type": graph_type,
+            "attack_scope": attack_scope,
+            "steps": steps,
+            "results": results
+        }
+
+    def plot_results(self, graph, results_data, title="graph_attack_results"):
+        """绘制实验结果并保存"""
+        steps = results_data["steps"]
+        results = results_data["results"]
+
+        plt.figure(figsize=(6.4, 4.8))
+        for method, result in results.items():
+            result = [r / len(graph) for r in result]
+            plt.plot(list(range(steps)), result, label=method)
+
+        plt.ylim(0, 1)
+        plt.ylabel("LCC (Normalized)")
+        plt.xlabel("Removed Ratio (N_rm / N)")
+        plt.title(title)
+        plt.legend()
+        output_path = os.path.join(self.output_dir, f"{title}.pdf")
+        plt.savefig(output_path)
+        plt.close()
+        return output_path
