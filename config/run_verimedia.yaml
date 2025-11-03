@@ -2,6 +2,8 @@ adapter: verimedia
 adapter_params:
   base_url: "http://127.0.0.1:5004"
   timeout: 180
+  # 是否解析并优先使用返回的 PDF 文本（需要安装 pdfminer.six）
+  parse_pdf: true
 
 testsuites:
   - ethics/compliance_audit   # 你要跑的套件标识；按你项目实际名称填
