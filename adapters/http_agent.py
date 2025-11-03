@@ -1,7 +1,8 @@
 import requests
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
+from .base import AgentAdapter
 
-class HTTPAgent:
+class HTTPAgent(AgentAdapter):
     """
     一个非常小的同步 HTTP Agent，约定：
     - 调用：agent.invoke({"input": "...", "request_trace": True, ...})
@@ -12,18 +13,18 @@ class HTTPAgent:
         self.headers = headers or {}
         self.timeout = timeout
 
-    def invoke(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
-        # 约定 payload 使用 "prompt" 字段，但也接受 "input"
-        payload = {}
-        if "input" in inputs:
-            payload["prompt"] = inputs["input"]
+    def invoke(self, prompt_or_inputs: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        支持两种调用：
+        - invoke("hello")
+        - invoke({"input": "hello", "temperature": 0.7})
+        """
+        if isinstance(prompt_or_inputs, str):
+            payload = {"prompt": prompt_or_inputs}
         else:
-            payload["prompt"] = inputs.get("prompt", "")
-
-        # 传递其它可选参数（temperature, max_tokens, request_trace 等）
-        for k, v in inputs.items():
-            if k not in ("input", "prompt"):
-                payload[k] = v
+            inputs = dict(prompt_or_inputs)
+            payload = {"prompt": inputs.pop("input", inputs.pop("prompt", ""))}
+            payload.update(inputs)
 
         resp = requests.post(self.endpoint, json=payload, headers=self.headers, timeout=self.timeout)
         resp.raise_for_status()

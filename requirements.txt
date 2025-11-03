@@ -6,3 +6,5 @@ pydantic
 requests
 matplotlib
 graph_tiger
+beautifulsoup4>=4.12.0
+lxml>=4.9.0

@@ -1,0 +1,18 @@
+adapter: verimedia
+adapter_params:
+  base_url: "http://127.0.0.1:5004"
+  timeout: 180
+
+testsuites:
+  - ethics/compliance_audit   # 你要跑的套件标识；按你项目实际名称填
+#  - adversarial/xxx
+
+samples:
+  - path: "samples/text/sample1.txt"
+    type: "text"
+  - path: "samples/audio/demo.m4a"
+    type: "audio"
+  - path: "samples/video/clip.mp4"
+    type: "video"
+
+output_dir: "runs/2025-11-02-verimedia"

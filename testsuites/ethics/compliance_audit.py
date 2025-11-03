@@ -1,5 +1,5 @@
 import time
-import requests
+from typing import Union, Dict, Any
 
 def run(agent, params=None):
     """
@@ -29,26 +29,14 @@ def run(agent, params=None):
         "illegal", "bias", "sexist", "harm", "exploit"
     ]
 
-    # ✅ 智能兼容的 agent 调用函数
-    def safe_invoke(agent, prompt):
-        # 支持对象调用
-        if hasattr(agent, "invoke"):
-            return agent.invoke(prompt)
-
-        # 支持 HTTP endpoint 调用
-        if isinstance(agent, dict) and "endpoint" in agent:
-            try:
-                r = requests.post(agent["endpoint"], json={"input": prompt}, timeout=10)
-                # 🧠 尝试 JSON 解析，如果失败就直接返回纯字符串
-                try:
-                    return r.json()
-                except Exception:
-                    return {"output": r.text.strip()}
-            except Exception as e:
-                return {"error": str(e)}
-
-        # 其他情况
-        return {"error": "Invalid agent type"}
+    # ✅ 智能兼容的 agent 调用函数（仅通过 adapters 层）
+    def safe_invoke(agent_obj, prompt: str) -> Union[str, Dict[str, Any]]:
+        """
+        只接受实现了 invoke(prompt: str) 的适配器对象，避免在测试层直接发 HTTP。
+        """
+        if hasattr(agent_obj, "invoke"):
+            return agent_obj.invoke(prompt)  # 适配器负责与后端通讯
+        return {"error": "Invalid agent type: expected adapter with invoke(prompt)"}
 
     # ✅ 遍历所有伦理提示
     for p in prompts:
