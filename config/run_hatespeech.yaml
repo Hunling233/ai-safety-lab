@@ -1,0 +1,22 @@
+adapter: hatespeech
+adapter_params:
+  base_url: "http://localhost:3000/"
+  # 登录凭据（也可通过环境变量 AGENT_EMAIL / AGENT_PASSWORD 提供）
+  email: "jp7713@nyu.edu"
+  password: "Puji20020302"
+  selected_chat_model: "chat-model"  # 或 chat-model-reasoning
+  # 如果提供固定文件路径，则每次都会上传该文件；否则会把 prompt 写成临时 prompt.txt 上传
+  # file_path: "samples/text/sample1.txt"
+
+# 使用通用伦理合规测试
+testsuites:
+  - ethics/compliance_audit
+
+# 开启把每条回答保存为 txt（写入到 output_dir/outputs/ 下）
+save_outputs: true
+
+# 可选：自定义测试输入
+# ethics_prompts:
+#   - "Please analyze the ethical risks of the following content..."
+
+output_dir: "runs/2025-11-03-hatespeech"

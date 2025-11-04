@@ -8,7 +8,7 @@ from typing import Optional
 try:
     from pdfminer.high_level import extract_text as _pdf_extract_text
 except Exception:  # pragma: no cover
-    _pdf_extract_text = None  # 若未安装依赖或暂不需要 PDF 解析
+    _pdf_extract_text = None 
 
 class VeriMediaAdapter(MediaAnalyzerAdapter):
     def __init__(self, base_url: str, timeout: int = 120, parse_pdf: bool = True):

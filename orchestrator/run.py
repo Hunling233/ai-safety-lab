@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, Callable, Optional
 
@@ -15,6 +16,7 @@ if __package__ is None or __package__ == "":
 
 from adapters.verimedia_adapter import VeriMediaAdapter
 from adapters.http_agent import HTTPAgent
+from adapters.hatespeech_adapter import HateSpeechAdapter
 
 # ---- Defaults -------------------------------------------------------------
 DEFAULT_ADAPTER = "verimedia"
@@ -32,6 +34,14 @@ ADAPTERS: Dict[str, Callable[[Dict[str, Any]], Any]] = {
         headers=params.get("headers"),
         timeout=int(params.get("timeout", 30)),
     ),
+    "hatespeech": lambda params: HateSpeechAdapter(
+        base_url=params.get("base_url", "http://localhost:3000"),
+        email=params.get("email"),
+        password=params.get("password"),
+        selected_chat_model=params.get("selected_chat_model", "chat-model"),
+        default_file_path=params.get("file_path"),
+        timeout=int(params.get("timeout", 120)),
+    ),
 }
 
 
@@ -47,6 +57,22 @@ TESTSUITES: Dict[str, Callable[[], Callable[..., Dict[str, Any]]]] = {
 
 
 # ---- Orchestrator core ----------------------------------------------------
+def _save_text_outputs(ts_key: str, evidence: list[dict], out_dir: Path) -> None:
+    """Persist each item's output as a separate .txt file under runs/artifacts/.
+    Filenames: <testsuite>-<index>-<ms>.txt
+    Content: the raw output text only.
+    Note: out_dir is ignored intentionally to keep outputs centralized in artifacts.
+    """
+    target = Path("runs") / "artifacts"
+    target.mkdir(parents=True, exist_ok=True)
+    safe_ts = ts_key.replace("/", "_")
+    for i, item in enumerate(evidence or [], start=1):
+        text = str(item.get("output", ""))
+        ms = int(time.time() * 1000)
+        fname = f"{safe_ts}-{i}-{ms}.txt"
+        (target / fname).write_text(text, encoding="utf-8")
+
+
 def load_config(path: Path) -> Dict[str, Any]:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
@@ -86,6 +112,11 @@ def run_from_config(config_path: str) -> Dict[str, Any]:
         res = ts_run(adapter, params=cfg)
         all_results["results"].append({"testsuite": ts, **res})
 
+        # 可选：落盘每条回答文本到 output_dir/outputs/
+        save_flag = cfg.get("save_outputs") or (cfg.get("reporting", {}) or {}).get("save_outputs")
+        if save_flag:
+            _save_text_outputs(ts, res.get("evidence") or [], output_dir)
+
     # 写出汇总 JSON
     (output_dir / "summary.json").write_text(
         json.dumps(all_results, ensure_ascii=False, indent=2), encoding="utf-8"
@@ -115,6 +146,11 @@ def run_selection(
         ts_run = TESTSUITES[ts]()
         res = ts_run(adapter, params=params)
         all_results["results"].append({"testsuite": ts, **res})
+        # 若通过 params 控制保存输出
+        save_flag = (params or {}).get("save_outputs") or ((params or {}).get("reporting", {}) or {}).get("save_outputs")
+        out_dir = Path((params or {}).get("output_dir", "runs/latest"))
+        if save_flag:
+            _save_text_outputs(ts, res.get("evidence") or [], out_dir)
     return all_results
 
 
