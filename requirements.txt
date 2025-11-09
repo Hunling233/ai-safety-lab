@@ -1,13 +1,25 @@
-fastapi
-uvicorn
-jinja2
-pyyaml
-pydantic
-requests
-matplotlib
+# Web框架和服务器
+fastapi>=0.100.0
+uvicorn>=0.23.0
+
+# 模板和配置
+jinja2>=3.1.0
+pyyaml>=6.0
+
+# 数据验证
+pydantic>=2.0.0
+
+# HTTP请求
+requests>=2.31.0
+
+# 数据可视化和图攻击
+matplotlib>=3.7.0
 graph_tiger
-PyYAML
+
+# HTML/XML解析
 beautifulsoup4>=4.12.0
 lxml>=4.9.0
+
+# PDF处理
 pdfminer.six>=20220524
 reportlab>=3.6.13
