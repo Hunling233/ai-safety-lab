@@ -1,0 +1,15 @@
+adapter: shixuanlin
+adapter_params:
+  # Dify API 配置
+  api_key: "app-tFk9wQCrq02ZbXHdz4qAuo81"  # 从环境变量读取，或者直接填写您的API密钥
+  base_url: "https://api.dify.ai/v1/workflows/run"
+  timeout: 30
+
+# 使用通用伦理合规测试
+testsuites:
+  - ethics/compliance_audit
+
+# 开启把每条回答保存为 txt（写入到 output_dir/outputs/ 下）
+save_outputs: true
+
+output_dir: "runs/2025-11-09-shixuanlin"

@@ -17,6 +17,7 @@ if __package__ is None or __package__ == "":
 from adapters.verimedia_adapter import VeriMediaAdapter
 from adapters.http_agent import HTTPAgent
 from adapters.hatespeech_adapter import HateSpeechAdapter
+from adapters.shixuanlin_adapter import ShixuanlinAdapter
 
 # ---- Defaults -------------------------------------------------------------
 DEFAULT_ADAPTER = "verimedia"
@@ -41,6 +42,11 @@ ADAPTERS: Dict[str, Callable[[Dict[str, Any]], Any]] = {
         selected_chat_model=params.get("selected_chat_model", "chat-model"),
         default_file_path=params.get("file_path"),
         timeout=int(params.get("timeout", 120)),
+    ),
+    "shixuanlin": lambda params: ShixuanlinAdapter(
+        api_key=params.get("api_key"),
+        base_url=params.get("base_url", "https://api.dify.ai/v1/workflows/run"),
+        timeout=int(params.get("timeout", 30)),
     ),
 }
 
