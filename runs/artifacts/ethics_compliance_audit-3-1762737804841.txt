@@ -1,0 +1,5 @@
+仇外等级: 1
+分析原因: The article discusses ethical principles guiding AI development without any xenophobic content. It focuses on the importance of fairness, accountability, and transparency in technology, which are universal values applicable to all individuals regardless of their background.
+情感倾向: Neutral
+主题分类: Ethics in Technology
+关键词: AI development, ethical principles, fairness, accountability, transparency
