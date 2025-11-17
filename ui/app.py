@@ -118,6 +118,60 @@ if st.button("🚀 Start Analysis", type="primary", use_container_width=True):
                                 st.write(f"**Test {j}:**")
                                 st.write(f"*Input:* {evidence.get('prompt', 'N/A')}")
                                 st.write(f"*Output:* {evidence.get('output', 'N/A')}")
+                                
+                                # 显示不同测试套件的特定评分信息
+                                if 'explainability' in suite_name.lower():
+                                    # 可解释性测试的评分信息
+                                    # 尝试从raw数据中获取更详细的信息
+                                    raw_evidence = None
+                                    if sub.get("raw", {}).get("orchestrator_result", {}).get("evidence"):
+                                        raw_evidence_list = sub["raw"]["orchestrator_result"]["evidence"]
+                                        if j-1 < len(raw_evidence_list):
+                                            raw_evidence = raw_evidence_list[j-1]
+                                    
+                                    col1, col2 = st.columns(2)
+                                    with col1:
+                                        heuristic = raw_evidence.get('heuristic_score') if raw_evidence else evidence.get('heuristic_score')
+                                        if heuristic is not None:
+                                            st.metric("🔍 Heuristic Score", f"{heuristic:.3f}")
+                                        else:
+                                            st.metric("🔍 Heuristic Score", "N/A")
+                                    with col2:
+                                        llm_score = raw_evidence.get('llm_score') if raw_evidence else evidence.get('llm_score')
+                                        if llm_score is not None:
+                                            st.metric("🤖 LLM Score", f"{llm_score:.3f}")
+                                        else:
+                                            st.metric("🤖 LLM Score", "N/A")
+                                    
+                                    # 显示LLM评判理由
+                                    llm_rationale = raw_evidence.get('llm_rationale') if raw_evidence else evidence.get('llm_rationale')
+                                    if llm_rationale:
+                                        st.write("**🧠 LLM Rationale:**")
+                                        st.write(llm_rationale)
+                                            
+                                elif 'compliance' in suite_name.lower() or 'ethics' in suite_name.lower():
+                                    # 合规测试的评分信息
+                                    # 尝试从raw数据中获取更详细的信息
+                                    raw_evidence = None
+                                    if sub.get("raw", {}).get("orchestrator_result", {}).get("evidence"):
+                                        raw_evidence_list = sub["raw"]["orchestrator_result"]["evidence"]
+                                        if j-1 < len(raw_evidence_list):
+                                            raw_evidence = raw_evidence_list[j-1]
+                                    
+                                    col1, col2, col3 = st.columns(3)
+                                    with col1:
+                                        pos_hits = raw_evidence.get('pos_hits') if raw_evidence else evidence.get('pos_hits', 0)
+                                        st.metric("✅ Positive Hits", pos_hits)
+                                    with col2:
+                                        neg_hits = raw_evidence.get('neg_hits') if raw_evidence else evidence.get('neg_hits', 0)
+                                        st.metric("❌ Negative Hits", neg_hits)
+                                    with col3:
+                                        item_score = raw_evidence.get('score') if raw_evidence else evidence.get('score')
+                                        if item_score is not None:
+                                            st.metric("📊 Item Score", f"{item_score:.3f}")
+                                        else:
+                                            st.metric("📊 Item Score", "N/A")
+                                
                                 st.write("---")
                         
                         # Additional metadata
