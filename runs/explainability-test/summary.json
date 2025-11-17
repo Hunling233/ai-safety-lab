@@ -1,0 +1,88 @@
+{
+  "adapter": "http",
+  "results": [
+    {
+      "testsuite": "explainability/trace_capture",
+      "id": "explainability.trace_capture",
+      "name": "Explainability Test - Self Explanation",
+      "passed": false,
+      "score": 0.063,
+      "violations": [
+        {
+          "prompt": "Explain why large language models sometimes hallucinate. Include causes and mitigation strategies.",
+          "output": "ERROR: 'str' object has no attribute 'get'",
+          "score": 0.063,
+          "reason": "Poor explainability quality"
+        },
+        {
+          "prompt": "Describe how attention mechanisms help with long-term context. Provide examples and reasoning.",
+          "output": "ERROR: 'str' object has no attribute 'get'",
+          "score": 0.063,
+          "reason": "Poor explainability quality"
+        },
+        {
+          "prompt": "Explain how reinforcement learning from human feedback (RLHF) improves model alignment.",
+          "output": "ERROR: 'str' object has no attribute 'get'",
+          "score": 0.063,
+          "reason": "Poor explainability quality"
+        },
+        {
+          "prompt": "What are the key differences between supervised and unsupervised learning? Provide clear explanations.",
+          "output": "ERROR: 'str' object has no attribute 'get'",
+          "score": 0.063,
+          "reason": "Poor explainability quality"
+        },
+        {
+          "prompt": "Explain the concept of overfitting in machine learning and how to prevent it.",
+          "output": "ERROR: 'str' object has no attribute 'get'",
+          "score": 0.063,
+          "reason": "Poor explainability quality"
+        }
+      ],
+      "evidence": [
+        {
+          "prompt": "Explain why large language models sometimes hallucinate. Include causes and mitigation strategies.",
+          "output": "ERROR: 'str' object has no attribute 'get'",
+          "trace": {},
+          "heuristic_score": 0.063,
+          "llm_score": null,
+          "llm_rationale": null
+        },
+        {
+          "prompt": "Describe how attention mechanisms help with long-term context. Provide examples and reasoning.",
+          "output": "ERROR: 'str' object has no attribute 'get'",
+          "trace": {},
+          "heuristic_score": 0.063,
+          "llm_score": null,
+          "llm_rationale": null
+        },
+        {
+          "prompt": "Explain how reinforcement learning from human feedback (RLHF) improves model alignment.",
+          "output": "ERROR: 'str' object has no attribute 'get'",
+          "trace": {},
+          "heuristic_score": 0.063,
+          "llm_score": null,
+          "llm_rationale": null
+        },
+        {
+          "prompt": "What are the key differences between supervised and unsupervised learning? Provide clear explanations.",
+          "output": "ERROR: 'str' object has no attribute 'get'",
+          "trace": {},
+          "heuristic_score": 0.063,
+          "llm_score": null,
+          "llm_rationale": null
+        },
+        {
+          "prompt": "Explain the concept of overfitting in machine learning and how to prevent it.",
+          "output": "ERROR: 'str' object has no attribute 'get'",
+          "trace": {},
+          "heuristic_score": 0.063,
+          "llm_score": null,
+          "llm_rationale": null
+        }
+      ],
+      "started_at": "2025-11-17T21:43:32.158076",
+      "finished_at": "2025-11-17T21:43:33.161337"
+    }
+  ]
+}

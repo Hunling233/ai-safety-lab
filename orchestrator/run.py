@@ -15,13 +15,18 @@ if __package__ is None or __package__ == "":
         sys.path.insert(0, str(_project_root))
 
 from adapters.verimedia_adapter import VeriMediaAdapter
-from adapters.http_agent import HTTPAgent
+from adapters.Li_http_agent import HTTPAgent
 from adapters.hatespeech_adapter import HateSpeechAdapter
 from adapters.shixuanlin_adapter import ShixuanlinAdapter
 
 # ---- Defaults -------------------------------------------------------------
 DEFAULT_ADAPTER = "verimedia"
-DEFAULT_TESTSUITES = ["ethics/compliance_audit"]
+DEFAULT_TESTSUITES = [
+    "ethics/compliance_audit",
+    "adversarial/prompt_injection", 
+    "consistency/multi_seed",
+    "explainability/trace_capture"
+]
 
 # ---- Adapter registry -----------------------------------------------------
 ADAPTERS: Dict[str, Callable[[Dict[str, Any]], Any]] = {
@@ -57,18 +62,31 @@ def _ts_ethics_compliance_audit():
     return _run
 
 
+def _ts_adversarial_prompt_injection():
+    from testsuites.adversarial.prompt_injection import run as _run
+    return _run
+
+
+def _ts_consistency_multi_seed():
+    from testsuites.consistency.multi_seed import run as _run
+    return _run
+
+
+def _ts_explainability_trace_capture():
+    from testsuites.explainability.trace_capture import run as _run
+    return _run
+
+
 TESTSUITES: Dict[str, Callable[[], Callable[..., Dict[str, Any]]]] = {
     "ethics/compliance_audit": _ts_ethics_compliance_audit,
+    "adversarial/prompt_injection": _ts_adversarial_prompt_injection,
+    "consistency/multi_seed": _ts_consistency_multi_seed,
+    "explainability/trace_capture": _ts_explainability_trace_capture,
 }
 
 
 # ---- Orchestrator core ----------------------------------------------------
 def _save_text_outputs(ts_key: str, evidence: list[dict], out_dir: Path) -> None:
-    """Persist each item's output as a separate .txt file under runs/artifacts/.
-    Filenames: <testsuite>-<index>-<ms>.txt
-    Content: the raw output text only.
-    Note: out_dir is ignored intentionally to keep outputs centralized in artifacts.
-    """
     target = Path("runs") / "artifacts"
     target.mkdir(parents=True, exist_ok=True)
     safe_ts = ts_key.replace("/", "_")
@@ -161,10 +179,42 @@ def run_selection(
 
 
 if __name__ == "__main__":
-    if len(sys.argv) >= 2:
+    if len(sys.argv) == 3:
+        # 两个参数模式：测试项目 + Agent配置文件
+        testsuite_name = sys.argv[1]
+        agent_config_path = sys.argv[2]
+        
+        # 验证测试套件是否存在
+        if testsuite_name not in TESTSUITES:
+            print(f"❌ 未知的测试套件: {testsuite_name}")
+            print(f"可用的测试套件: {list(TESTSUITES.keys())}")
+            sys.exit(1)
+        
+        # 加载Agent配置
+        cfg_file = Path(agent_config_path)
+        cfg = load_config(cfg_file)
+        
+        adapter_name: str = cfg.get("adapter") or DEFAULT_ADAPTER
+        adapter_params: Dict[str, Any] = cfg.get("adapter_params", {})
+        output_dir = Path(cfg.get("output_dir", f"runs/{testsuite_name.replace('/', '_')}"))
+        
+        print(f"[orchestrator] 运行测试套件: {testsuite_name}")
+        print(f"[orchestrator] 使用Agent配置: {agent_config_path}")
+        print(f"[orchestrator] Adapter: {adapter_name}")
+        
+        # 运行指定的测试套件
+        summary = run_selection(
+            adapter_name=adapter_name,
+            adapter_params=adapter_params,
+            testsuites=[testsuite_name],
+            params=cfg
+        )
+    elif len(sys.argv) == 2:
+        # 单个参数模式：完整配置文件（原有逻辑）
         summary = run_from_config(sys.argv[1])
     else:
-        # 无配置时使用默认：adapter=verimedia, testsuite=ethics/compliance_audit
+        # 无参数：使用默认设置
         print("[orchestrator] No config provided. Running defaults: adapter=verimedia, testsuite=ethics/compliance_audit")
         summary = run_selection()
+    
     print(json.dumps(summary, ensure_ascii=False, indent=2))

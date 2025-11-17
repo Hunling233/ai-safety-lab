@@ -5,11 +5,126 @@ import time
 import uuid
 import json
 from datetime import datetime
-from adapters.http_agent import HTTPAgent
+from pathlib import Path
+from typing import Optional, Dict
+from adapters.Li_http_agent import HTTPAgent
 from testsuites.adversarial import prompt_injection
 from testsuites.consistency import multi_seed
 from testsuites.explainability import trace_capture
 from testsuites.ethics import compliance_audit
+
+
+def load_config_from_file(config_file: str = "config/openai.env") -> Dict[str, str]:
+    """
+    从配置文件加载环境变量
+    Load environment variables from config file
+    
+    Args:
+        config_file: 配置文件路径 (默认: config/openai.env)
+        
+    Returns:
+        Dict[str, str]: 配置字典
+    """
+    config = {}
+    
+    # 获取项目根目录
+    project_root = Path(__file__).parent.parent
+    config_path = project_root / config_file
+    
+    if not config_path.exists():
+        print(f"⚠️ 配置文件不存在: {config_path}")
+        print(f"请创建文件并设置你的 OPENAI_API_KEY")
+        return config
+    
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            for line_no, line in enumerate(f, 1):
+                line = line.strip()
+                
+                # 跳过空行和注释行
+                if not line or line.startswith('#'):
+                    continue
+                
+                # 解析 KEY=VALUE 格式
+                if '=' in line:
+                    key, value = line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    
+                    # 移除引号 (如果有)
+                    if value.startswith('"') and value.endswith('"'):
+                        value = value[1:-1]
+                    elif value.startswith("'") and value.endswith("'"):
+                        value = value[1:-1]
+                    
+                    config[key] = value
+                else:
+                    print(f"⚠️ 配置文件第{line_no}行格式错误: {line}")
+        
+        print(f"✅ 成功加载配置文件: {config_path}")
+        print(f"📋 加载了 {len(config)} 个配置项")
+        
+    except Exception as e:
+        print(f"❌ 读取配置文件失败: {e}")
+    
+    return config
+
+
+def get_openai_api_key() -> Optional[str]:
+    """
+    获取 OpenAI API Key，优先级：环境变量 > 配置文件
+    Get OpenAI API Key, priority: environment variable > config file
+    
+    Returns:
+        Optional[str]: API Key 或 None
+    """
+    # 1. 优先从环境变量获取
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key:
+        print("✅ 从环境变量获取 OPENAI_API_KEY")
+        return api_key
+    
+    # 2. 从配置文件获取
+    config = load_config_from_file()
+    api_key = config.get("OPENAI_API_KEY")
+    
+    if api_key and api_key != "sk-your-openai-api-key-here":
+        print("✅ 从配置文件获取 OPENAI_API_KEY")
+        return api_key
+    
+    print("❌ 未找到有效的 OPENAI_API_KEY")
+    print("📋 请通过以下方式设置:")
+    print("   1. 环境变量: $env:OPENAI_API_KEY='sk-your-key'")
+    print("   2. 配置文件: 编辑 config/openai.env")
+    
+    return None
+
+
+def validate_api_key(api_key: str) -> bool:
+    """
+    验证 API Key 格式
+    Validate API Key format
+    
+    Args:
+        api_key: 待验证的 API Key
+        
+    Returns:
+        bool: 是否有效
+    """
+    if not api_key:
+        return False
+    
+    # OpenAI API Key 通常以 "sk-" 开头
+    if not api_key.startswith("sk-"):
+        print("⚠️ API Key 格式可能不正确 (应以 'sk-' 开头)")
+        return False
+    
+    # 检查长度 (OpenAI API Key 通常很长)
+    if len(api_key) < 40:
+        print("⚠️ API Key 长度可能不正确")
+        return False
+    
+    return True
 
 
 def run_all(agent, params=None):
@@ -156,9 +271,20 @@ if __name__ == "__main__":
     print(f"🕒 Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("🔗 Target endpoint: OpenAI API\n")
 
-    api_key = os.getenv("OPENAI_API_KEY")
+    # 从配置文件或环境变量获取 API Key
+    api_key = get_openai_api_key()
     if not api_key:
-        print("❌ ERROR: 环境变量 OPENAI_API_KEY 未设置！请先运行： export OPENAI_API_KEY='你的Key'")
+        print("❌ ERROR: 未找到 OPENAI_API_KEY！")
+        print("📋 请通过以下方式设置:")
+        print("   1. 编辑配置文件: config/openai.env")
+        print("   2. 设置环境变量: $env:OPENAI_API_KEY='你的Key' (PowerShell)")
+        print("   3. 获取API Key: https://platform.openai.com/api-keys")
+        exit(1)
+    
+    # 验证 API Key 格式
+    if not validate_api_key(api_key):
+        print("❌ ERROR: API Key 格式验证失败！")
+        print("请确保 API Key 以 'sk-' 开头且长度正确")
         exit(1)
 
     agent = HTTPAgent(

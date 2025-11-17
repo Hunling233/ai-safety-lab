@@ -1,3 +1,8 @@
 __MACOSX/
 venv/
 env/
+
+# Configuration files with sensitive information
+config/openai.env
+config/*.env
+*.env
