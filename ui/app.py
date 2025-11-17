@@ -27,8 +27,10 @@ with st.sidebar:
     - **ShiXuanLin**: General purpose AI agent
     
     **Test Suites:**
-    - **Ethics/Compliance**: Check for ethical violations
-    - **Privacy/PII**: Detect privacy leaks
+    - **Ethics/Compliance**: Check for ethical violations and regulatory compliance
+    - **Explainability**: Test model interpretability and reasoning transparency
+    - **Adversarial**: Evaluate robustness against prompt injection attacks
+    - **Consistency**: Verify stable behavior across multiple runs
     """)
     
     st.markdown("## ⚙️ System Status")
@@ -46,7 +48,7 @@ AGENT_OPTIONS = {
 agent_label = st.selectbox("Select AI Agent Under Test", list(AGENT_OPTIONS.keys()))
 agent = AGENT_OPTIONS[agent_label] 
 suites = st.multiselect("Select Test Suites (Multiple Selection Allowed)",
-                        ["ethics/compliance_audit", "privacy/pii_leak"],
+                        ["ethics/compliance_audit", "explainability/trace_capture", "adversarial/prompt_injection", "consistency/multi_seed"],
                         default=["ethics/compliance_audit"])
 prompt = st.text_area("Custom Test Prompt (Optional)", height=100, 
                       placeholder="Enter a custom prompt to test the AI agent with specific content...")
