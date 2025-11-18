@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Results - VeriMedia</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/images/favicon.png">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+    
+    
+<style>
+    .positive-words {
+        padding: 15px;
+        background-color: #f0f8f0;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .positive-message {
+        font-size: 18px;
+        color: #2e7d32;
+        margin-bottom: 15px;
+        font-weight: 500;
+    }
+    
+    .positive-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .positive-tag {
+        background-color: #4caf50;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 14px;
+        display: inline-block;
+        font-weight: 500;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .positive-tag:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+</style>
+
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="container">
+                <div class="navbar-brand">
+                    <a href="/">
+                        <span class="logo-text">VeriMedia</span>
+                    </a>
+                </div>
+                <div class="navbar-menu">
+                    <ul class="navbar-nav">
+                        <li class="nav-item"><a href="/" class="nav-link">Home</a></li>
+                        <li class="nav-item"><a href="/about" class="nav-link">About</a></li>
+                    </ul>
+                </div>
+                <div class="navbar-toggle">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="container">
+            
+                
+            
+            
+            
+<section class="results-section">
+    <div class="section-header">
+        <h1>Media Analysis Results</h1>
+        <p>AI-powered analysis of your content</p>
+    </div>
+    
+    <div class="results-container">
+        <div class="results-summary">
+            <div class="toxicity-meter">
+                <h3>Toxicity Level</h3>
+                <div class="meter-container">
+                    
+                    
+                        
+                        
+                    
+                    
+                    <div class="meter">
+                        <div class="meter-fill meter-green" style="width: 0%"></div>
+                    </div>
+                    <div class="meter-label">
+                        <span class="toxicity-level toxicity-green">None</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="results-actions">
+                <form action="/download_report_pdf" method="post">
+                    <input type="hidden" name="toxicity_level" value="None">
+                    <input type="hidden" name="report_content" value="Your content has been analyzed and found to contain no problematic or xenophobic language. The content appears to be ethical, balanced, and respectful. It presents information in a fair and accurate manner that follows best practices for responsible reporting.">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-download"></i> Download PDF Report
+                    </button>
+                </form>
+                <a href="/" class="btn btn-secondary">
+                    <i class="fas fa-redo"></i> Analyze Another File
+                </a>
+            </div>
+        </div>
+        
+        <div class="results-tabs">
+            <div class="tabs-header">
+                <button class="tab-btn active" data-tab="suggestions">Suggestions</button>
+                <button class="tab-btn" data-tab="report">Full Report</button>
+                
+                
+            </div>
+            
+            <div class="tabs-content">
+                <div class="tab-pane active" id="suggestions-tab">
+                    <h3>Improvement Suggestions</h3>
+                    
+                        <div class="positive-words">
+                            <p class="positive-message">Great job! Your content has no toxic elements.</p>
+                            <div class="positive-tags">
+                                <span class="positive-tag">Inclusive</span>
+                                <span class="positive-tag">Ethical</span>
+                                <span class="positive-tag">Balanced</span>
+                                <span class="positive-tag">Respectful</span>
+                                <span class="positive-tag">Fair</span>
+                                <span class="positive-tag">Accurate</span>
+                                <span class="positive-tag">Constructive</span>
+                                <span class="positive-tag">Responsible</span>
+                            </div>
+                        </div>
+                    
+                </div>
+                
+                <div class="tab-pane" id="report-tab">
+                    <h3>Comprehensive Report</h3>
+                    <div class="report-content">
+                        
+                            <p>Your content has been analyzed and found to contain no problematic or xenophobic language. The content appears to be ethical, balanced, and respectful. It presents information in a fair and accurate manner that follows best practices for responsible reporting.</p>
+                        
+                    </div>
+                </div>
+                
+                
+                
+                
+            </div>
+        </div>
+    </div>
+</section>
+
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <span class="logo-text">VeriMedia</span>
+                    <p>AI-driven media analysis tool for ethical reporting</p>
+                </div>
+                <div class="footer-links">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="/">Home</a></li>
+                        <li><a href="/about">About</a></li>
+                    </ul>
+                </div>
+                <div class="footer-contact">
+                    <h3>About VeriMedia</h3>
+                    <p>An AI-powered analysis tool for ethical reporting on refugee and migration topics.</p>
+                    <div class="social-icons">
+                        <a href="#" target="_blank"><i class="fab fa-twitter"></i></a>
+                        <a href="#" target="_blank"><i class="fab fa-facebook"></i></a>
+                        <a href="#" target="_blank"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; <span id="current-year"></span> VeriMedia - UNICC. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="/static/js/main.js"></script>
+    
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tab switching functionality
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabPanes = document.querySelectorAll('.tab-pane');
+        
+        tabButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons and panes
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabPanes.forEach(pane => pane.classList.remove('active'));
+                
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Show corresponding tab pane
+                const tabId = this.getAttribute('data-tab');
+                document.getElementById(`${tabId}-tab`).classList.add('active');
+            });
+        });
+    });
+</script>
+
+</body>
+</html> 

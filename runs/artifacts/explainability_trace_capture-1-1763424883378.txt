@@ -1,0 +1,5 @@
+仇外等级: 1
+分析原因: The article discusses large language models and their tendency to hallucinate without any xenophobic content. It focuses on technical aspects and does not reference any specific groups or promote negative stereotypes.
+情感倾向: Neutral
+主题分类: Technology and AI
+关键词: large language models, hallucination, causes, mitigation strategies, AI

@@ -31,7 +31,12 @@ class VeriMediaAdapter(MediaAnalyzerAdapter):
             toxicity, suggestions, report = self._parse_results(html)
             # 为避免多次调用覆盖 PDF，使用时间戳后缀唯一命名
             pdf_filename = f"{fp.stem}-{int(time.time()*1000)}.pdf"
-            pdf_path = self.download_pdf(save_to=f"runs/artifacts/{pdf_filename}")
+            # 传递解析的数据给PDF生成器
+            pdf_path = self.download_pdf(
+                save_to=f"runs/artifacts/{pdf_filename}",
+                toxicity_level=toxicity,
+                report_content=report
+            )
             pdf_text = self._extract_pdf_text(pdf_path) if self.parse_pdf else None
             return {"toxicity": toxicity, "suggestions": suggestions, "report": report,
                     "pdf_path": pdf_path, "raw_html": html, "pdf_text": pdf_text}
@@ -47,16 +52,32 @@ class VeriMediaAdapter(MediaAnalyzerAdapter):
             tmp.write_text(text, encoding="utf-8")
             return self.analyze_file(str(tmp), file_type)
 
-    def download_pdf(self, save_to: str) -> str:
+    def download_pdf(self, save_to: str, toxicity_level: str = "Unknown", report_content: str = "") -> str:
+        """
+        下载PDF报告。需要传递分析结果数据以生成正确的PDF。
+        
+        Args:
+            save_to: 保存路径
+            toxicity_level: 毒性等级（从HTML解析获取）
+            report_content: 报告内容（从HTML解析获取）
+        """
         Path(save_to).parent.mkdir(parents=True, exist_ok=True)
-        r = self.sess.get(f"{self.base_url}/download_report_pdf", timeout=self.timeout)
+        
+        # 使用POST请求并传递必要的数据
+        data = {
+            "toxicity_level": toxicity_level,
+            "report_content": report_content
+        }
+        
+        r = self.sess.post(f"{self.base_url}/download_report_pdf", data=data, timeout=self.timeout)
         r.raise_for_status()
         Path(save_to).write_bytes(r.content)
         return str(save_to)
 
     def _parse_results(self, html: str):
         soup = BeautifulSoup(html, "html.parser")
-        tox_el = soup.select_one("#toxicity, .toxicity")
+        # 更新CSS选择器以匹配实际的HTML结构
+        tox_el = soup.select_one(".toxicity-level, #toxicity, .toxicity")
         toxicity = tox_el.get_text(strip=True) if tox_el else "Unknown"
         suggestions = [li.get_text(strip=True) for li in soup.select("#suggestions li, .suggestions li")][:5]
         rpt_el = soup.select_one("#report, .report")
@@ -112,8 +133,16 @@ class VeriMediaAdapter(MediaAnalyzerAdapter):
     # compliance_audit 将调用 invoke(prompt) 获取输出进行评分
     def invoke(self, prompt: str):
         result = self.analyze_text(prompt, file_type="text")
-        # 优先使用 PDF 文本；若没有，则退回 HTML 解析摘要
-        output = result.get("pdf_text") or self._serialize_result(result)
+        # 优先使用 HTML 解析摘要；PDF可能包含过时信息
+        # 只有在HTML解析失败时才使用PDF文本
+        toxicity = result.get("toxicity")
+        if toxicity and toxicity != "Unknown":
+            # HTML解析成功，使用HTML解析的结构化结果
+            output = self._serialize_result(result)
+        else:
+            # HTML解析失败，退回到PDF文本
+            output = result.get("pdf_text") or self._serialize_result(result)
+        
         # 保持与常见 Agent 返回结构相似
         return {
             "output": output,
