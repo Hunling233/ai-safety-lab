@@ -10,3 +10,10 @@ config/*.env
 # Virtual environment and run artifacts
 .venv/
 runs/
+
+# Debug and temporary files
+debug_*
+debug*.html
+debug*.pdf
+*.tmp
+*.temp
