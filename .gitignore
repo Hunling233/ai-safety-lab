@@ -6,3 +6,7 @@ env/
 config/openai.env
 config/*.env
 *.env
+
+# Virtual environment and run artifacts
+.venv/
+runs/
