@@ -1,1 +1,0 @@
-{'output': '', 'local_pdf_path': 'runs\\artifacts\\prompt-234e51997eee4abbb9318755662e8bef.pdf'}
