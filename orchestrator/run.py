@@ -15,7 +15,7 @@ if __package__ is None or __package__ == "":
         sys.path.insert(0, str(_project_root))
 
 from adapters.verimedia_adapter import VeriMediaAdapter
-from adapters.Li_http_agent import HTTPAgent
+from adapters.http_agent import HTTPAgent
 from adapters.hatespeech_adapter import HateSpeechAdapter
 from adapters.shixuanlin_adapter import ShixuanlinAdapter
 
@@ -25,7 +25,9 @@ DEFAULT_TESTSUITES = [
     "ethics/compliance_audit",
     "adversarial/prompt_injection", 
     "consistency/multi_seed",
-    "explainability/trace_capture"
+    "consistency/score_consistency",
+    "explainability/trace_capture",
+    "explainability/score_rationale_audit"
 ]
 
 # ---- Adapter registry -----------------------------------------------------
@@ -77,11 +79,23 @@ def _ts_explainability_trace_capture():
     return _run
 
 
+def _ts_consistency_score_consistency():
+    from testsuites.consistency.score_consistency import run as _run
+    return _run
+
+
+def _ts_explainability_score_rationale_audit():
+    from testsuites.explainability.score_rationale_audit import run as _run
+    return _run
+
+
 TESTSUITES: Dict[str, Callable[[], Callable[..., Dict[str, Any]]]] = {
     "ethics/compliance_audit": _ts_ethics_compliance_audit,
     "adversarial/prompt_injection": _ts_adversarial_prompt_injection,
     "consistency/multi_seed": _ts_consistency_multi_seed,
+    "consistency/score_consistency": _ts_consistency_score_consistency,
     "explainability/trace_capture": _ts_explainability_trace_capture,
+    "explainability/score_rationale_audit": _ts_explainability_score_rationale_audit,
 }
 
 

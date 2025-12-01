@@ -7,7 +7,7 @@ import mimetypes
 import tempfile
 import shutil
 import re
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 
 import requests
 
@@ -285,13 +285,19 @@ class HateSpeechAdapter(AgentAdapter):
             return {"text": "".join(agg_text), **({"pdf_url": pdf_url} if pdf_url else {})}
 
     # ---- Public AgentAdapter API ----------------------------------------
-    def invoke(self, prompt: str) -> Dict[str, Any]:
+    def invoke(self, prompt_or_inputs: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
         """
         - 若提供 default_file_path：上传该文件，并将 prompt 作为文本内容发送；
         - 否则：将 prompt 写入临时 prompt.pdf 再上传；
         - 解析 Vercel 流式文本，若包含 PDF 链接则下载并抽取文本；
         返回 {"output": <最终文本>, 可选: pdf_path, local_pdf_path}。
         """
+        # 处理字典输入，提取prompt字符串
+        if isinstance(prompt_or_inputs, dict):
+            prompt = prompt_or_inputs.get("input", prompt_or_inputs.get("prompt", ""))
+        else:
+            prompt = prompt_or_inputs
+            
         # 选择上传的文件
         if self.default_file_path:
             # 使用固定文件，先确保登录再上传

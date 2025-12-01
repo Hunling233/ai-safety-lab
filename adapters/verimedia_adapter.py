@@ -131,17 +131,28 @@ class VeriMediaAdapter(MediaAnalyzerAdapter):
 
     # 让 VeriMedia 也可作为“文本型 Agent”被 testsuites 调用
     # compliance_audit 将调用 invoke(prompt) 获取输出进行评分
-    def invoke(self, prompt: str):
-        result = self.analyze_text(prompt, file_type="text")
-        # 优先使用 HTML 解析摘要；PDF可能包含过时信息
-        # 只有在HTML解析失败时才使用PDF文本
-        toxicity = result.get("toxicity")
-        if toxicity and toxicity != "Unknown":
-            # HTML解析成功，使用HTML解析的结构化结果
-            output = self._serialize_result(result)
+    def invoke(self, prompt_or_inputs):
+        # 处理字典输入，提取prompt字符串
+        if isinstance(prompt_or_inputs, dict):
+            prompt = prompt_or_inputs.get("input", prompt_or_inputs.get("prompt", ""))
         else:
-            # HTML解析失败，退回到PDF文本
-            output = result.get("pdf_text") or self._serialize_result(result)
+            prompt = prompt_or_inputs
+            
+        result = self.analyze_text(prompt, file_type="text")
+        
+        # 优先返回PDF中的实际文本内容供测试套件分析
+        pdf_text = result.get("pdf_text")
+        if pdf_text and pdf_text.strip():
+            # PDF文本提取成功，返回实际内容
+            output = pdf_text.strip()
+        else:
+            # PDF文本提取失败，使用HTML解析的结构化结果
+            toxicity = result.get("toxicity")
+            if toxicity and toxicity != "Unknown":
+                output = self._serialize_result(result)
+            else:
+                # 如果都失败了，返回基本状态信息
+                output = f"toxicity: {result.get('toxicity', 'Unknown')}\npdf_path: {result.get('pdf_path', 'N/A')}"
         
         # 保持与常见 Agent 返回结构相似
         return {
@@ -149,4 +160,5 @@ class VeriMediaAdapter(MediaAnalyzerAdapter):
             "toxicity": result.get("toxicity"),
             "pdf_path": result.get("pdf_path"),
             "suggestions": result.get("suggestions"),
+            "pdf_text": result.get("pdf_text"),  # 额外提供PDF文本
         }

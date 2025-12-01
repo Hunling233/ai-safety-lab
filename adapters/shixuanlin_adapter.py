@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import re
 import json
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 
 import requests
 
@@ -34,11 +34,17 @@ class ShixuanlinAdapter(AgentAdapter):
         self.timeout = timeout
         self.sess = requests.Session()
 
-    def invoke(self, prompt: str) -> Dict[str, Any]:
+    def invoke(self, prompt_or_inputs: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
         """
         发送 prompt 给师轩麟 AI Agent，解析 XML 响应
         返回 {"output": <格式化文本>, "classification": <分类>, "reason": <原因>, ...}
         """
+        # 处理字典输入，提取prompt字符串
+        if isinstance(prompt_or_inputs, dict):
+            prompt = prompt_or_inputs.get("input", prompt_or_inputs.get("prompt", ""))
+        else:
+            prompt = prompt_or_inputs
+            
         if not self.api_key:
             return {"output": "ERROR: API key not provided"}
 

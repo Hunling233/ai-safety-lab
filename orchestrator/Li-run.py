@@ -4,7 +4,7 @@ import time
 import uuid
 import json
 from datetime import datetime
-from adapters.http_agent import HTTPAgent
+from adapters.Li_http_agent import HTTPAgent
 from testsuites.adversarial import prompt_injection
 from testsuites.consistency import multi_seed
 from testsuites.explainability import trace_capture
