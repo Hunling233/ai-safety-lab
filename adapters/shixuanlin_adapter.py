@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import json
+import time
 from typing import Optional, Dict, Any, Union
 
 import requests
@@ -28,10 +29,14 @@ class ShixuanlinAdapter(AgentAdapter):
         api_key: Optional[str] = None,
         base_url: str = "https://api.dify.ai/v1/workflows/run",
         timeout: int = 30,
+        max_retries: int = 3,
+        retry_delay: float = 1.0,
     ):
         self.api_key = api_key or os.environ.get("APP_KEY") or os.environ.get("SHIXUANLIN_API_KEY")
         self.base_url = base_url
         self.timeout = timeout
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay
         self.sess = requests.Session()
 
     def invoke(self, prompt_or_inputs: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
@@ -58,27 +63,64 @@ class ShixuanlinAdapter(AgentAdapter):
             "user": "api_client"
         }
         
+        # 使用重试机制
+        for attempt in range(self.max_retries + 1):
+            try:
+                # 第一次尝试使用更长的超时时间
+                current_timeout = self.timeout + (30 if attempt == 0 else 0)
+                
+                print(f"ShiXuanLin API attempt {attempt + 1}/{self.max_retries + 1} (timeout: {current_timeout}s)")
+                
+                # 发送请求
+                response = self.sess.post(self.base_url, json=payload, headers=headers, timeout=current_timeout)
+                
+                if response.status_code != 200:
+                    error_msg = f"API request failed - {response.status_code}: {response.text}"
+                    print(f"ShiXuanLin API error: {error_msg}")
+                    if attempt == self.max_retries:
+                        return {"output": f"ERROR: {error_msg}"}
+                    time.sleep(self.retry_delay)
+                    continue
+                
+                # 获取响应
+                api_result = response.json()
+                
+                # 提取XML结果文本（尝试多种可能的路径）
+                xml_text = self._extract_xml_text(api_result)
+                
+                if xml_text is None:
+                    error_msg = "Cannot find result text in API response"
+                    print(f"ShiXuanLin parsing error: {error_msg}")
+                    print(f"API response structure: {self._debug_response_structure(api_result)}")
+                    
+                    if attempt == self.max_retries:
+                        return {
+                            "output": f"ERROR: {error_msg}",
+                            "raw_response": api_result
+                        }
+                    time.sleep(self.retry_delay)
+                    continue
+                
+                # 成功获取结果，跳出重试循环
+                print(f"ShiXuanLin API success on attempt {attempt + 1}")
+                break
+                
+            except requests.exceptions.RequestException as e:
+                error_msg = f"Network request failed - {str(e)}"
+                print(f"ShiXuanLin network error: {error_msg}")
+                if attempt == self.max_retries:
+                    return {"output": f"ERROR: {error_msg}"}
+                time.sleep(self.retry_delay)
+                continue
+            except Exception as e:
+                error_msg = f"Processing failed - {str(e)}"
+                print(f"ShiXuanLin processing error: {error_msg}")
+                if attempt == self.max_retries:
+                    return {"output": f"ERROR: {error_msg}"}
+                time.sleep(self.retry_delay)
+                continue
+        
         try:
-            # 发送请求
-            response = self.sess.post(self.base_url, json=payload, headers=headers, timeout=self.timeout)
-            
-            if response.status_code != 200:
-                return {
-                    "output": f"ERROR: API request failed - {response.status_code}: {response.text}"
-                }
-            
-            # 获取响应
-            api_result = response.json()
-            
-            # 提取XML结果文本（尝试多种可能的路径）
-            xml_text = self._extract_xml_text(api_result)
-            
-            if xml_text is None:
-                return {
-                    "output": "ERROR: Cannot find result text in API response",
-                    "raw_response": api_result
-                }
-            
             # 解析XML结果
             parsed_data = self._parse_xml_response(xml_text)
             
@@ -91,10 +133,28 @@ class ShixuanlinAdapter(AgentAdapter):
             
             return result_dict
             
-        except requests.exceptions.RequestException as e:
-            return {"output": f"ERROR: Network request failed - {str(e)}"}
         except Exception as e:
-            return {"output": f"ERROR: Processing failed - {str(e)}"}
+            return {"output": f"ERROR: Final processing failed - {str(e)}"}
+
+    def _debug_response_structure(self, api_result: Dict[str, Any], max_depth: int = 2) -> str:
+        """调试API响应结构"""
+        def _format_obj(obj, depth=0):
+            if depth > max_depth:
+                return "..."
+            
+            if isinstance(obj, dict):
+                items = []
+                for k, v in list(obj.items())[:3]:  # 只显示前3个键
+                    items.append(f"{k}: {_format_obj(v, depth + 1)}")
+                return "{" + ", ".join(items) + "}"
+            elif isinstance(obj, list):
+                if len(obj) > 0:
+                    return f"[{_format_obj(obj[0], depth + 1)}, ...] (len={len(obj)})"
+                return "[]"
+            else:
+                return f"{type(obj).__name__}"
+        
+        return _format_obj(api_result)
 
     def _extract_xml_text(self, api_result: Dict[str, Any]) -> Optional[str]:
         """从API响应中提取XML文本"""

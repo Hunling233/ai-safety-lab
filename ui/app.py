@@ -21,16 +21,21 @@ with st.sidebar:
     st.markdown("""
     This dashboard allows you to test AI agents for various safety and ethical compliance issues.
     
-    **Available Agents:**
-    - **VeriMedia**: Media content analysis
-    - **HateSpeech**: Hate speech detection  
-    - **ShiXuanLin**: General purpose AI agent
+    **Available AI Agents:**
+    - **📺 VeriMedia**: Advanced media content analysis and toxicity assessment
+    - **🚫 HateSpeech**: Specialized hate speech and toxic content detection  
+    - **🧠 ShiXuanLin**: General-purpose AI agent for comprehensive analysis
+    - **🌐 HTTP Agent**: Configurable endpoint for custom AI services
     
-    **Test Suites:**
-    - **Ethics/Compliance**: Check for ethical violations and regulatory compliance
-    - **Explainability**: Test model interpretability and reasoning transparency
-    - **Adversarial**: Evaluate robustness against prompt injection attacks
-    - **Consistency**: Verify stable behavior across multiple runs
+    **Four Core Testing Modules:**
+    - **🛡️ Ethics Module**: Regulatory compliance and ethical guidelines adherence
+    - **⚔️ Adversarial Module**: Defense against prompt injection and manipulation attacks  
+    - **🎯 Consistency Module**: Output stability and scoring reliability assessment
+    - **🔍 Explainability Module**: Model interpretability and reasoning quality evaluation
+    
+    **Agent Types:**
+    - **💬 Conversational AI**: General Q&A and content generation agents
+    - **📊 Scoring AI**: Specialized agents for content scoring and evaluation
     """)
     
     st.markdown("## ⚙️ System Status")
@@ -42,14 +47,159 @@ with st.sidebar:
 AGENT_OPTIONS = {
     "VeriMedia": "verimedia",
     "HateSpeech": "hatespeech", 
-    "TBN1 (ShiXuanLin)": "shixuanlin",
+    "ShiXuanLin": "shixuanlin",
+    "HTTP Agent": "http",
 }
 
 agent_label = st.selectbox("Select AI Agent Under Test", list(AGENT_OPTIONS.keys()))
-agent = AGENT_OPTIONS[agent_label] 
-suites = st.multiselect("Select Test Suites (Multiple Selection Allowed)",
-                        ["ethics/compliance_audit", "explainability/trace_capture", "adversarial/prompt_injection", "consistency/multi_seed"],
-                        default=["ethics/compliance_audit"])
+agent = AGENT_OPTIONS[agent_label]
+
+ 
+# Define test modules and their suites
+TEST_MODULES = {
+    "Ethics Module": {
+        "description": "Regulatory compliance and ethical guidelines adherence",
+        "suites": {
+            "Compliance Audit": "ethics/compliance_audit"
+        }
+    },
+    "Adversarial Module": {
+        "description": "Defense against prompt injection and manipulation attacks",
+        "suites": {
+            "Attack Resistance": "adversarial/prompt_injection"
+        }
+    },
+    "Consistency Module": {
+        "description": "Output stability and scoring reliability assessment",
+        "suites": {
+            "Multi-Seed Testing": "consistency/multi_seed",
+            "Score Stability": "consistency/score_consistency"
+        }
+    },
+    "Explainability Module": {
+        "description": "Model interpretability and reasoning quality evaluation",
+        "suites": {
+            "Trace Capture": "explainability/trace_capture",
+            "Rationale Audit": "explainability/score_rationale_audit"
+        }
+    }
+}
+
+# Initialize session state for selected suites if not exists
+if 'selected_suites' not in st.session_state:
+    st.session_state.selected_suites = set(["ethics/compliance_audit"])  # Default selection
+
+st.markdown("### Select Test Suites by Module")
+
+# Initialize expanded state for modules if not exists
+if 'expanded_modules' not in st.session_state:
+    st.session_state.expanded_modules = set()
+
+# Create collapsible modules
+selected_suites = st.session_state.selected_suites.copy()
+
+for module_name, module_info in TEST_MODULES.items():
+    module_suites = list(module_info["suites"].values())
+    selected_in_module = [suite for suite in module_suites if suite in selected_suites]
+    
+    # Determine module state for border color
+    if len(selected_in_module) == 0:
+        border_color = "#dee2e6"
+        bg_color = "#ffffff"
+    elif len(selected_in_module) == len(module_suites):
+        border_color = "#28a745"
+        bg_color = "#d4edda"
+    else:
+        border_color = "#ffc107"
+        bg_color = "#fff3cd"
+    
+    # Check if module is expanded
+    is_expanded = module_name in st.session_state.expanded_modules
+    expand_icon = "▼" if is_expanded else "▶"
+    
+    # Module-level checkbox for full selection
+    module_fully_selected = len(selected_in_module) == len(module_suites) and len(module_suites) > 0
+    module_partially_selected = len(selected_in_module) > 0 and len(selected_in_module) < len(module_suites)
+    
+    # Create columns for the clickable module box and checkbox
+    col1, col2 = st.columns([9, 1])
+    
+    # Create columns for the module box and checkbox
+    col1, col2 = st.columns([9, 1])
+    
+    with col1:
+        button_content = f"**{expand_icon} {module_name}**\n\n{module_info['description']}"
+        
+        if st.button(button_content, key=f"toggle_{module_name}", help="Click to expand/collapse module", use_container_width=True):
+            if is_expanded:
+                st.session_state.expanded_modules.discard(module_name)
+            else:
+                st.session_state.expanded_modules.add(module_name)
+            st.rerun()
+    
+    with col2:
+        checkbox_value = st.checkbox("", key=f"module_select_{module_name}", value=module_fully_selected, help="Select/Deselect entire module")
+    
+    # Apply CSS styling to the button
+    st.markdown(f"""
+    <style>
+    div[data-testid="column"]:nth-of-type(1) button[kind="secondary"] {{
+        border: 2px solid {border_color} !important;
+        background-color: {bg_color} !important;
+        border-radius: 8px !important;
+        padding: 15px !important;
+        text-align: left !important;
+        height: auto !important;
+        min-height: 70px !important;
+        white-space: pre-line !important;
+        font-size: 14px !important;
+        line-height: 1.4 !important;
+    }}
+    
+    /* Make the bold text (module name) larger */
+    div[data-testid="column"]:nth-of-type(1) button[kind="secondary"] strong {{
+        font-size: 18px !important;
+        color: #333 !important;
+        display: block !important;
+        margin-bottom: 8px !important;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Update selections based on checkbox
+    if checkbox_value and not module_fully_selected:
+        # Select all suites in this module
+        for suite in module_suites:
+            selected_suites.add(suite)
+    elif not checkbox_value and (module_fully_selected or module_partially_selected):
+        # Deselect all suites in this module
+        for suite in module_suites:
+            selected_suites.discard(suite)
+    
+    # Show expanded content if module is expanded
+    if is_expanded:
+        with st.container():
+            st.markdown("**Individual Test Suites:**")
+            # Individual suite checkboxes
+            for suite_name, suite_key in module_info["suites"].items():
+                is_selected = suite_key in selected_suites
+                
+                if st.checkbox(
+                    f"✓ {suite_name}",
+                    value=is_selected,
+                    key=f"suite_{suite_key}",
+                    help=f"Technical name: {suite_key}"
+                ):
+                    selected_suites.add(suite_key)
+                else:
+                    selected_suites.discard(suite_key)
+            st.markdown("")
+
+# Update session state
+st.session_state.selected_suites = selected_suites
+
+# Convert to list for backend
+suites = list(selected_suites)
 prompt = st.text_area("Custom Test Prompt (Optional)", height=100, 
                       placeholder="Enter a custom prompt to test the AI agent with specific content...")
 
@@ -62,7 +212,7 @@ if st.button("🚀 Start Analysis", type="primary", use_container_width=True):
 
     with st.spinner("Running tests... Please wait"):
         try:
-            r = requests.post(f"{BACKEND}/api/run", json=payload, timeout=60)
+            r = requests.post(f"{BACKEND}/api/run", json=payload, timeout=300)
             r.raise_for_status()
             res = r.json()
             st.success("✅ Testing completed successfully!")
@@ -94,12 +244,20 @@ if st.button("🚀 Start Analysis", type="primary", use_container_width=True):
             # Sub-results
             if res.get("results"):
                 st.subheader("🔍 Detailed Test Results")
+                
+                # Create reverse lookup for display names
+                SUITE_DISPLAY_NAMES = {}
+                for module_name, module_info in TEST_MODULES.items():
+                    for suite_name, suite_key in module_info["suites"].items():
+                        SUITE_DISPLAY_NAMES[suite_key] = f"{module_name} - {suite_name}"
+                
                 for i, sub in enumerate(res["results"], 1):
                     suite_name = sub['suite']
+                    suite_display_name = SUITE_DISPLAY_NAMES.get(suite_name, suite_name)
                     suite_score = sub.get('score', 'N/A')
                     
                     # Create expandable section for each test suite
-                    with st.expander(f"Test Suite {i}: {suite_name} (Score: {suite_score})"):
+                    with st.expander(f"{suite_display_name} (Score: {suite_score})"):
                         
                         # Violations section
                         if sub.get("violations"):

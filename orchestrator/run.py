@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -13,6 +14,31 @@ if __package__ is None or __package__ == "":
     _project_root = Path(__file__).resolve().parents[1]
     if str(_project_root) not in sys.path:
         sys.path.insert(0, str(_project_root))
+
+# Load OpenAI API key from config if not already set
+def load_openai_config():
+    """Load OpenAI configuration from config/openai.env if API key is not already set."""
+    if not os.getenv('OPENAI_API_KEY'):
+        config_path = Path(__file__).resolve().parents[1] / 'config' / 'openai.env'
+        if config_path.exists():
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            key, value = line.split('=', 1)
+                            key = key.strip()
+                            value = value.strip()
+                            if key and value:
+                                os.environ[key] = value
+                print(f"[config] Loaded OpenAI configuration from {config_path}")
+            except Exception as e:
+                print(f"[warning] Failed to load config from {config_path}: {e}")
+        else:
+            print(f"[warning] OpenAI config file not found at {config_path}")
+
+# Load configuration before importing adapters
+load_openai_config()
 
 from adapters.verimedia_adapter import VeriMediaAdapter
 from adapters.http_agent import HTTPAgent
