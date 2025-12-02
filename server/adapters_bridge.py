@@ -180,10 +180,34 @@ def _convert_orchestrator_result(orchestrator_result: dict, suite: str) -> SubRe
     # 转换 evidence  
     evidence = []
     for item in evidence_data:
-        evidence.append(Evidence(
-            prompt=str(item.get("prompt", "N/A")),
-            output=str(item.get("output", "N/A"))
-        ))
+        # 根据测试套件类型处理不同的evidence结构
+        if 'score_rationale_audit' in suite:
+            # score_rationale_audit 有特殊的结构
+            model_output = item.get("model_output", {})
+            output_text = model_output.get("output", str(model_output)) if isinstance(model_output, dict) else str(model_output)
+            
+            evidence.append(Evidence(
+                prompt=str(item.get("input", "N/A")),  # 使用 input 而不是 prompt
+                output=output_text
+            ))
+        elif 'compliance' in suite or 'ethics' in suite:
+            # Compliance 测试有特殊的输出字段
+            evidence.append(Evidence(
+                prompt=str(item.get("prompt", "N/A")),
+                output=str(item.get("model_output", "N/A"))  # 使用 model_output 字段
+            ))
+        elif 'adversarial' in suite or 'prompt_injection' in suite:
+            # Adversarial 测试使用 attack 字段作为输入
+            evidence.append(Evidence(
+                prompt=str(item.get("attack", "N/A")),  # 使用 attack 字段
+                output=str(item.get("output", "N/A"))
+            ))
+        else:
+            # 其他测试套件使用标准结构
+            evidence.append(Evidence(
+                prompt=str(item.get("prompt", "N/A")),
+                output=str(item.get("output", "N/A"))
+            ))
     
     # 构建 raw 数据
     raw_data = {
@@ -194,7 +218,9 @@ def _convert_orchestrator_result(orchestrator_result: dict, suite: str) -> SubRe
             "name": orchestrator_result.get("name"),
             "started_at": orchestrator_result.get("started_at"),
             "finished_at": orchestrator_result.get("finished_at")
-        }
+        },
+        # 保留原始evidence数据，用于UI的详细显示
+        "original_evidence": evidence_data if evidence_data else []
     }
     
     return SubResult(

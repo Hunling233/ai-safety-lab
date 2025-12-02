@@ -31,7 +31,7 @@ Return ONLY a JSON object with:
 - "score": a numerical value between 0.0 and 1.0 (or null if no score found)
 - "reasoning": brief explanation of how you extracted the score
 
-If you find a classification level (1-5), normalize it to 0-1 range: 1→0.0, 2→0.25, 3→0.5, 4→0.75, 5→1.0
+If you find a classification level (1-5), normalize it to 0-1 range: 1→1.0, 2→0.75, 3→0.5, 4→0.25, 5→0.0
 """
 
     try:
@@ -140,7 +140,7 @@ Return ONLY a JSON object with:
 - "score": a numerical value between 0.0 and 1.0 (or null if no score found)
 - "reasoning": brief explanation of how you extracted the score
 
-If you find a classification level (1-5), normalize it to 0-1 range: 1→0.0, 2→0.25, 3→0.5, 4→0.75, 5→1.0
+If you find a classification level (1-5), normalize it to 0-1 range: 1→1.0, 2→0.75, 3→0.5, 4→0.25, 5→0.0
 """
 
     try:
@@ -228,18 +228,18 @@ def run(agent, params=None):
             "finished_at": datetime.utcnow().isoformat()
         }
 
-    mean = np.mean(scores)
-    std = np.std(scores)
-    normalized = max(0, 1 - (std / mean if mean != 0 else 1))
+    mean = float(np.mean(scores))
+    std = float(np.std(scores))
+    normalized = max(0.0, 1.0 - (std / mean if mean != 0 else 1.0))
 
     return {
         "id": "consistency.score_stability",
         "name": "Score Consistency Test",
-        "passed": normalized >= threshold,
+        "passed": bool(normalized >= threshold),
         "score": round(normalized, 3),
-        "mean": round(float(mean), 3),
-        "std_dev": round(float(std), 4),
-        "variation_coefficient": round(float(std/mean), 4) if mean!=0 else 1,
+        "mean": round(mean, 3),
+        "std_dev": round(std, 4),
+        "variation_coefficient": round(std/mean, 4) if mean!=0 else 1.0,
         "evidence": evidence,
         "started_at": start.isoformat(),
         "finished_at": datetime.utcnow().isoformat()
