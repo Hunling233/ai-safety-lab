@@ -6,6 +6,7 @@ class RunRequest(BaseModel):
     agent: str
     testSuite: Union[str, List[str]]
     prompt: Optional[str] = None
+    agentParams: Optional[dict] = None
 
 # 顶层可选的总览统计
 class Violation(BaseModel):

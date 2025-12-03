@@ -4,7 +4,7 @@ from .models import RunRequest, RunResponse, SubResult, Violation, Evidence, Vio
 
 _SEV_RANK = {"low": 1, "med": 2, "high": 3}
 
-def _real_one_suite(suite: str, agent: str, prompt: str | None) -> SubResult:
+def _real_one_suite(suite: str, agent: str, prompt: str | None, agent_params: dict | None = None) -> SubResult:
     """
     调用真实的 orchestrator 执行单个测试套件
     
@@ -58,38 +58,42 @@ def _real_one_suite(suite: str, agent: str, prompt: str | None) -> SubResult:
                 raw={"error": f"Unknown testsuite: {suite}"}
             )
         
-        # 构建适配器参数 - 从YAML配置文件读取
+        # 构建适配器参数
         adapter_params = {}
         
-        # 读取对应适配器的YAML配置文件
-        config_file = project_root / "config" / f"run_{agent}.yaml"
-        if config_file.exists():
-            import yaml
-            with open(config_file, 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f)
-                adapter_params = config.get("adapter_params", {})
+        # 如果是自定义agent且提供了参数，直接使用
+        if agent == "custom" and agent_params:
+            adapter_params = agent_params
         else:
-            # 如果配置文件不存在，使用默认参数
-            if agent == "shixuanlin":
-                adapter_params = {
-                    "api_key": os.environ.get("APP_KEY") or os.environ.get("SHIXUANLIN_API_KEY"),
-                    "base_url": "https://api.dify.ai/v1/workflows/run",
-                    "timeout": 30
-                }
-            elif agent == "hatespeech":
-                adapter_params = {
-                    "base_url": "http://localhost:3000/",
-                    "email": os.environ.get("AGENT_EMAIL"),
-                    "password": os.environ.get("AGENT_PASSWORD"),
-                    "selected_chat_model": "chat-model",
-                    "timeout": 120
-                }
-            elif agent == "verimedia":
-                adapter_params = {
-                    "base_url": "http://127.0.0.1:5004",
-                    "timeout": 180,
-                    "parse_pdf": True
-                }
+            # 从YAML配置文件读取
+            config_file = project_root / "config" / f"run_{agent}.yaml"
+            if config_file.exists():
+                import yaml
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config = yaml.safe_load(f)
+                    adapter_params = config.get("adapter_params", {})
+            else:
+                # 如果配置文件不存在，使用默认参数
+                if agent == "shixuanlin":
+                    adapter_params = {
+                        "api_key": os.environ.get("APP_KEY") or os.environ.get("SHIXUANLIN_API_KEY"),
+                        "base_url": "https://api.dify.ai/v1/workflows/run",
+                        "timeout": 30
+                    }
+                elif agent == "hatespeech":
+                    adapter_params = {
+                        "base_url": "http://localhost:3000/",
+                        "email": os.environ.get("AGENT_EMAIL"),
+                        "password": os.environ.get("AGENT_PASSWORD"),
+                        "selected_chat_model": "chat-model",
+                        "timeout": 120
+                    }
+                elif agent == "verimedia":
+                    adapter_params = {
+                        "base_url": "http://127.0.0.1:5004",
+                        "timeout": 180,
+                        "parse_pdf": True
+                    }
         
         # 构建测试参数
         test_params = {}
@@ -348,7 +352,7 @@ def run_test_bridge(req: RunRequest, use_mock: bool = False) -> RunResponse:
         sub_results = [_mock_one_suite(s, req.prompt) for s in suites]
         mock_flag = True
     else:
-        sub_results = [_real_one_suite(s, req.agent, req.prompt) for s in suites]
+        sub_results = [_real_one_suite(s, req.agent, req.prompt, req.agentParams) for s in suites]
         mock_flag = False
 
     total_score, summary = _aggregate(sub_results)

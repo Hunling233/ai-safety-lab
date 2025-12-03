@@ -44,6 +44,7 @@ from adapters.verimedia_adapter import VeriMediaAdapter
 from adapters.http_agent import HTTPAgent
 from adapters.hatespeech_adapter import HateSpeechAdapter
 from adapters.shixuanlin_adapter import ShixuanlinAdapter
+from adapters.universal_http_agent import UniversalHTTPAgent
 
 # ---- Defaults -------------------------------------------------------------
 DEFAULT_ADAPTER = "verimedia"
@@ -79,6 +80,13 @@ ADAPTERS: Dict[str, Callable[[Dict[str, Any]], Any]] = {
     "shixuanlin": lambda params: ShixuanlinAdapter(
         api_key=params.get("api_key"),
         base_url=params.get("base_url", "https://api.dify.ai/v1/workflows/run"),
+        timeout=int(params.get("timeout", 30)),
+    ),
+    "custom": lambda params: UniversalHTTPAgent(
+        endpoint=params.get("endpoint"),
+        api_key=params.get("api_key"),
+        api_format=params.get("format", "openai_compatible"),
+        model_name=params.get("model"),
         timeout=int(params.get("timeout", 30)),
     ),
 }

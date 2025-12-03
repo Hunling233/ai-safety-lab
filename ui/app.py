@@ -466,6 +466,7 @@ if st.session_state.current_page == 'testing':
         "VeriMedia": "verimedia", 
         "HateSpeech": "hatespeech",
         "HTTP Agent": "http",
+        "Custom Agent": "custom",
     }
 
     agent_label = st.selectbox("Select AI Agent Under Test", list(AGENT_OPTIONS.keys()), 
@@ -473,7 +474,7 @@ if st.session_state.current_page == 'testing':
                                      help="Select the AI agent for safety testing")
     agent = AGENT_OPTIONS[agent_label]
 
-    # 显示Agent状态提示
+    # 显示Agent状态提示和自定义配置
     if agent_label == "VeriMedia":
         st.warning("⚠️ VeriMedia requires external service on port 5004. Recommended: Use ShiXuanLin for testing.")
     elif agent_label == "ShiXuanLin":
@@ -482,6 +483,98 @@ if st.session_state.current_page == 'testing':
         st.info("ℹ️ HateSpeech agent may require additional configuration.")
     elif agent_label == "HTTP Agent":
         st.info("ℹ️ HTTP Agent requires endpoint configuration.")
+    elif agent_label == "Custom Agent":
+        st.info("🔧 Configure your custom AI API for safety testing.")
+        
+        # Custom Agent Configuration
+        with st.expander("🛠️ Custom Agent Configuration", expanded=True):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                custom_agent_name = st.text_input(
+                    "Agent Name *",
+                    placeholder="My Custom AI",
+                    help="A friendly name for your AI agent (will appear in reports)"
+                )
+                
+                custom_endpoint = st.text_input(
+                    "API Endpoint URL *",
+                    placeholder="https://api.openai.com/v1/chat/completions",
+                    help="Enter the full API endpoint URL"
+                )
+                
+                custom_api_key = st.text_input(
+                    "API Key *",
+                    type="password",
+                    placeholder="Enter your API key",
+                    help="Your API key will not be stored permanently"
+                )
+            
+            with col2:
+                # Define supported formats directly here to avoid import issues
+                supported_formats = {
+                    "openai_compatible": "OpenAI Compatible (ChatGPT, Moonshot, DeepSeek等)",
+                    "claude": "Anthropic Claude",
+                    "gemini": "Google Gemini",
+                    "azure_openai": "Azure OpenAI"
+                }
+                
+                custom_format = st.selectbox(
+                    "API Format *",
+                    options=list(supported_formats.keys()),
+                    format_func=lambda x: supported_formats[x],
+                    help="Select the API format that matches your service"
+                )
+                
+                custom_model = st.text_input(
+                    "Model Name (Optional)",
+                    placeholder="gpt-3.5-turbo",
+                    help="Override the default model name if needed"
+                )
+            
+            # Test Connection Button
+            if st.button("🔍 Test Connection", type="secondary"):
+                if custom_agent_name and custom_endpoint and custom_api_key:
+                    try:
+                        with st.spinner("Testing connection..."):
+                            # Import here to avoid path issues
+                            import sys
+                            import os
+                            sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+                            from adapters.universal_http_agent import UniversalHTTPAgent
+                            
+                            test_agent = UniversalHTTPAgent(
+                                endpoint=custom_endpoint,
+                                api_key=custom_api_key,
+                                api_format=custom_format,
+                                model_name=custom_model if custom_model else None
+                            )
+                            
+                            result = test_agent.test_connection("Hello, this is a test message.")
+                            
+                            if result["status"] == "success":
+                                st.success(f"✅ {result['message']}")
+                                st.code(f"Test Response: {result['test_output']}", language="text")
+                            else:
+                                st.error(f"❌ {result['message']}")
+                                
+                    except Exception as e:
+                        st.error(f"❌ Configuration error: {str(e)}")
+                else:
+                    st.warning("⚠️ Please fill in Agent Name, API Endpoint and API Key to test connection.")
+            
+            # Store custom config in session state
+            if custom_agent_name and custom_endpoint and custom_api_key:
+                st.session_state.custom_agent_config = {
+                    "name": custom_agent_name,
+                    "endpoint": custom_endpoint,
+                    "api_key": custom_api_key,
+                    "format": custom_format,
+                    "model": custom_model if custom_model else None
+                }
+                st.success("✅ Custom agent configuration saved for this session.")
+            else:
+                st.session_state.custom_agent_config = None
 
     st.markdown("### Select AI Testing Type")
     st.markdown("*Choose the AI type you want to test, and the system will automatically select the corresponding test projects*")
@@ -554,11 +647,33 @@ if st.session_state.current_page == 'testing':
                           placeholder="Enter a custom prompt to test the AI agent with specific content...")
 
     if st.button("🚀 Start Analysis", type="primary", use_container_width=True):
+        # Check if custom agent is configured properly
+        if agent == "custom":
+            if not hasattr(st.session_state, 'custom_agent_config') or not st.session_state.custom_agent_config:
+                st.error("❌ Please configure Custom Agent settings first!")
+                st.stop()
+            
+            custom_config = st.session_state.custom_agent_config
+            if not custom_config.get("name") or not custom_config.get("endpoint") or not custom_config.get("api_key"):
+                st.error("❌ Custom Agent requires Agent Name, API Endpoint and API Key!")
+                st.stop()
+        
         payload = {
             "agent": agent,
             "testSuite": suites if len(suites) > 1 else suites[0],
             "prompt": prompt or None
         }
+        
+        # Add custom agent configuration to payload
+        if agent == "custom" and hasattr(st.session_state, 'custom_agent_config'):
+            custom_config = st.session_state.custom_agent_config
+            payload["agentParams"] = {
+                "endpoint": custom_config["endpoint"],
+                "api_key": custom_config["api_key"],
+                "format": custom_config["format"],
+                "model": custom_config.get("model"),
+                "timeout": 60
+            }
 
         with st.spinner("Running tests... Please wait"):
             try:
@@ -570,9 +685,14 @@ if st.session_state.current_page == 'testing':
                 
                 # Save test record
                 from datetime import datetime
+                # Use custom agent name if available, otherwise use agent_label
+                display_agent_name = agent_label
+                if agent == "custom" and hasattr(st.session_state, 'custom_agent_config') and st.session_state.custom_agent_config:
+                    display_agent_name = st.session_state.custom_agent_config.get("name", agent_label)
+                
                 test_record = {
                     'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    'agent': agent_label,
+                    'agent': display_agent_name,
                     'test_type': 'Conversational AI' if st.session_state.global_test_type == 'conversational' else 'Scoring AI',
                     'suites': suites,
                     'prompt': prompt if prompt else None,
@@ -754,9 +874,14 @@ if st.session_state.current_page == 'testing':
                 st.subheader("📄 Export Report")
                 
                 # Prepare data for PDF
+                # Use custom agent name if available, otherwise use agent_label
+                display_agent_name = agent_label
+                if agent == "custom" and hasattr(st.session_state, 'custom_agent_config') and st.session_state.custom_agent_config:
+                    display_agent_name = st.session_state.custom_agent_config.get("name", agent_label)
+                
                 pdf_data = {
-                    'agent': agent_label,
-                    'test_type': ', '.join([SUITE_DISPLAY_NAMES.get(suite, suite) for suite in suites]),
+                    'agent': display_agent_name,
+                    'test_type': 'Conversational AI' if st.session_state.global_test_type == 'conversational' else 'Scoring AI',
                     'overall_score': res.get('score'),
                     'results': res.get('results', []),
                     'violation_summary': res.get('violationSummary', {}),
