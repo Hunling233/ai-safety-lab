@@ -44,5 +44,5 @@ USER aisafety
 # 暴露端口
 EXPOSE 8000 8501
 
-# 启动命令
-CMD ["python", "start_server.py"]
+# 启动命令 - 同时运行API服务器和Streamlit前端
+CMD sh -c "python -m uvicorn server.api:app --host 0.0.0.0 --port 8000 & streamlit run ui/app.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true & wait"

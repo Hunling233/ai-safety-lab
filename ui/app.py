@@ -354,7 +354,6 @@ with st.sidebar:
     - **📺 VeriMedia**: Advanced media content analysis and toxicity assessment
     - **🚫 HateSpeech**: Specialized hate speech and toxic content detection  
     - **🧠 ShiXuanLin**: General-purpose AI agent for comprehensive analysis
-    - **🌐 HTTP Agent**: Configurable endpoint for custom AI services
     
     **Four Core Testing Modules:**
     - **🛡️ Ethics Module**: Regulatory compliance and ethical guidelines adherence
@@ -465,7 +464,6 @@ if st.session_state.current_page == 'testing':
         "ShiXuanLin": "shixuanlin",
         "VeriMedia": "verimedia", 
         "HateSpeech": "hatespeech",
-        "HTTP Agent": "http",
         "Custom Agent": "custom",
         "LangChain Agent": "langchain",
     }
@@ -475,15 +473,16 @@ if st.session_state.current_page == 'testing':
                                      help="Select the AI agent for safety testing")
     agent = AGENT_OPTIONS[agent_label]
 
-    # 显示Agent状态提示和自定义配置
-    if agent_label == "VeriMedia":
-        st.warning("⚠️ VeriMedia requires external service on port 5004. Recommended: Use ShiXuanLin for testing.")
-    elif agent_label == "ShiXuanLin":
-        st.success("✅ ShiXuanLin is ready and has been tested successfully.")
-    elif agent_label == "HateSpeech": 
-        st.info("ℹ️ HateSpeech agent may require additional configuration.")
-    elif agent_label == "HTTP Agent":
-        st.info("ℹ️ HTTP Agent requires endpoint configuration.")
+    # Agent配置
+    if agent_label == "ShiXuanLin":
+        st.info("🔍 Test ShiXuanLin AI agent for safety vulnerabilities.")
+        
+    elif agent_label == "VeriMedia":
+        st.info("📊 Test VeriMedia AI agent for content safety and compliance.")
+        
+    elif agent_label == "HateSpeech":
+        st.info("🚫 Test HateSpeech detection AI agent for bias and accuracy.")
+        
     elif agent_label == "LangChain Agent":
         st.info("🔗 Test LangChain-based AI agents and workflows.")
         
@@ -584,7 +583,7 @@ if st.session_state.current_page == 'testing':
                             # Try to import LangChain
                             try:
                                 import langchain
-                                from langchain.llms import OpenAI
+                                from langchain_openai import OpenAI
                                 st.success("✅ LangChain libraries available")
                                 
                                 # Test basic setup
@@ -718,8 +717,8 @@ if st.session_state.current_page == 'testing':
             else:
                 st.session_state.custom_agent_config = None
 
-    # AI Judge Configuration - only show for applicable tests
-    if agent_label in ["VeriMedia", "ShiXuanLin", "HTTP Agent", "Custom Agent"]:
+    # AI Judge Configuration - show for all agents
+    if agent_label in ["VeriMedia", "ShiXuanLin", "HateSpeech", "Custom Agent", "LangChain Agent"]:
         st.markdown("### 🧠 AI Judge Configuration")
         st.markdown("*Configure the AI agent that will help evaluate test results (used for scoring, security reviews, etc.)*")
         
@@ -922,9 +921,6 @@ if st.session_state.current_page == 'testing':
         elif st.session_state.global_test_type == 'scoring':
             suites.extend(module_info['scoring_suites'])
 
-    prompt = st.text_area("Custom Test Prompt (Optional)", height=100, 
-                          placeholder="Enter a custom prompt to test the AI agent with specific content...")
-
     if st.button("🚀 Start Analysis", type="primary", use_container_width=True):
         # Check if custom agent is configured properly
         if agent == "custom":
@@ -950,8 +946,7 @@ if st.session_state.current_page == 'testing':
         
         payload = {
             "agent": agent,
-            "testSuite": suites if len(suites) > 1 else suites[0],
-            "prompt": prompt or None
+            "testSuite": suites if len(suites) > 1 else suites[0]
         }
         
         # Add custom agent configuration to payload
@@ -1011,7 +1006,6 @@ if st.session_state.current_page == 'testing':
                     'agent': display_agent_name,
                     'test_type': 'Conversational AI' if st.session_state.global_test_type == 'conversational' else 'Scoring AI',
                     'suites': suites,
-                    'prompt': prompt if prompt else None,
                     'overall_score': res.get('score', 'N/A'),
                     'results': res.get('results', []),
                     'violation_summary': res.get('violationSummary', {}),
@@ -1203,8 +1197,7 @@ if st.session_state.current_page == 'testing':
                     'overall_score': res.get('score'),
                     'results': res.get('results', []),
                     'violation_summary': res.get('violationSummary', {}),
-                    'suites': suites,
-                    'prompt': prompt if prompt else None
+                    'suites': suites
                 }
                 
                 download_pdf_report(pdf_data, SUITE_DISPLAY_NAMES)
@@ -1293,12 +1286,6 @@ else:  # Test Records page
                         vs = record['violation_summary']
                         st.write(f"**Violations**: {vs.get('count', 0)}")
                         st.write(f"**Max Severity**: {vs.get('maxSeverity', 'None')}")
-                
-                # Custom prompt if provided
-                if record['prompt']:
-                    st.markdown("**Custom Prompt**")
-                    with st.expander("View Prompt", expanded=False):
-                        st.write(f"```\n{record['prompt']}\n```")
                 
                 # Detailed results (reuse the same display logic as in testing page)
                 if record['results']:
@@ -1413,8 +1400,7 @@ else:  # Test Records page
                     'overall_score': record['overall_score'],
                     'results': record['results'],
                     'violation_summary': record['violation_summary'],
-                    'suites': record['suites'],
-                    'prompt': record.get('prompt')
+                    'suites': record['suites']
                 }
                 
                 download_pdf_report(pdf_data, SUITE_DISPLAY_NAMES)

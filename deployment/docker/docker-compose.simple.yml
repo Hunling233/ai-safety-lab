@@ -1,0 +1,31 @@
+# AI Safety Lab - 简化版 Docker Compose
+# 适用于开发环境，避免权限问题
+
+version: '3.8'
+
+services:
+  ai-safety-lab:
+    build:
+      context: ../../
+      dockerfile: deployment/docker/Dockerfile.production
+    ports:
+      - "8000:8000"
+      - "8501:8501"
+    environment:
+      - AI_SAFETY_ENV=development
+      - PYTHONPATH=/app
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - ../../runs:/app/runs
+      - ../../config:/app/config:ro
+    restart: unless-stopped
+    command: |
+      sh -c "
+        echo 'Starting AI Safety Lab...'
+        # 启动后端服务（后台）
+        python -m uvicorn server.api:app --host 0.0.0.0 --port 8000 &
+        # 等待后端启动
+        sleep 10
+        # 启动前端服务
+        streamlit run ui/app.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true
+      "

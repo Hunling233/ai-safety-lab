@@ -8,16 +8,29 @@ from typing import Dict, Any, Optional
 from .base import AgentAdapter
 
 try:
-    from langchain.schema import BaseLanguageModel
-    from langchain.agents import AgentExecutor
-    from langchain.chains import LLMChain
-    from langchain.schema.runnable import Runnable
+    from langchain_core.language_models import BaseLanguageModel
+    from langchain_core.runnables import Runnable
+    # Optional components - may not be available in all versions
+    LLMChain = None
+    AgentExecutor = None
+    try:
+        from langchain_community.chains import LLMChain
+    except ImportError:
+        pass
+    try:
+        from langchain_community.agents import AgentExecutor
+    except ImportError:
+        try:
+            from langchain_community.agent_toolkits import AgentExecutor
+        except ImportError:
+            pass
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False
     BaseLanguageModel = None
     AgentExecutor = None
     LLMChain = None
+    Runnable = None
     Runnable = None
 
 
@@ -57,9 +70,9 @@ class LangChainAdapter(AgentAdapter):
         """Detect what type of LangChain object we're dealing with"""
         if isinstance(self.langchain_object, BaseLanguageModel):
             return "llm"
-        elif isinstance(self.langchain_object, AgentExecutor):
+        elif AgentExecutor is not None and isinstance(self.langchain_object, AgentExecutor):
             return "agent"
-        elif isinstance(self.langchain_object, LLMChain):
+        elif LLMChain is not None and isinstance(self.langchain_object, LLMChain):
             return "chain"
         elif isinstance(self.langchain_object, Runnable):
             return "runnable"
@@ -143,21 +156,21 @@ class LangChainAdapter(AgentAdapter):
 class LangChainLLMAdapter(LangChainAdapter):
     """Specialized adapter for LangChain LLMs"""
     
-    def __init__(self, llm: BaseLanguageModel):
+    def __init__(self, llm):
         super().__init__(llm, input_key="input", output_key="output")
 
 
 class LangChainAgentAdapter(LangChainAdapter):
     """Specialized adapter for LangChain Agents"""
     
-    def __init__(self, agent: AgentExecutor):
+    def __init__(self, agent):
         super().__init__(agent, input_key="input", output_key="output")
 
 
 class LangChainChainAdapter(LangChainAdapter):
     """Specialized adapter for LangChain Chains"""
     
-    def __init__(self, chain: LLMChain, input_key: str = "input", output_key: str = "text"):
+    def __init__(self, chain, input_key: str = "input", output_key: str = "text"):
         super().__init__(chain, input_key=input_key, output_key=output_key)
 
 
@@ -179,9 +192,9 @@ def create_langchain_adapter(langchain_object, **kwargs) -> LangChainAdapter:
     # Use specialized adapters if available
     if isinstance(langchain_object, BaseLanguageModel):
         return LangChainLLMAdapter(langchain_object)
-    elif isinstance(langchain_object, AgentExecutor):
+    elif AgentExecutor is not None and isinstance(langchain_object, AgentExecutor):
         return LangChainAgentAdapter(langchain_object)
-    elif isinstance(langchain_object, LLMChain):
+    elif LLMChain is not None and isinstance(langchain_object, LLMChain):
         return LangChainChainAdapter(langchain_object, **kwargs)
     else:
         return LangChainAdapter(langchain_object, **kwargs)
@@ -191,7 +204,7 @@ def create_langchain_adapter(langchain_object, **kwargs) -> LangChainAdapter:
 def create_example_langchain_llm():
     """Create an example LangChain LLM for testing"""
     try:
-        from langchain.llms import OpenAI
+        from langchain_openai import OpenAI
         return OpenAI(temperature=0.7, max_tokens=100)
     except ImportError:
         return None
@@ -200,9 +213,9 @@ def create_example_langchain_llm():
 def create_example_langchain_chain():
     """Create an example LangChain Chain for testing"""
     try:
-        from langchain.llms import OpenAI
-        from langchain.chains import LLMChain
-        from langchain.prompts import PromptTemplate
+        from langchain_openai import OpenAI
+        from langchain_community.chains import LLMChain
+        from langchain_core.prompts import PromptTemplate
         
         llm = OpenAI(temperature=0.7)
         prompt = PromptTemplate(

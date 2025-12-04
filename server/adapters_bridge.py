@@ -1,10 +1,10 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional, Dict, Any, Tuple, Union
 from .models import RunRequest, RunResponse, SubResult, Violation, Evidence, ViolationSummary
 
 _SEV_RANK = {"low": 1, "med": 2, "high": 3}
 
-def _real_one_suite(suite: str, agent: str, prompt: str | None, agent_params: dict | None = None, judge_params: dict | None = None) -> SubResult:
+def _real_one_suite(suite: str, agent: str, prompt: Optional[str], agent_params: Optional[Dict[str, Any]] = None, judge_params: Optional[Dict[str, Any]] = None) -> SubResult:
     """
     调用真实的 orchestrator 执行单个测试套件
     
@@ -308,7 +308,7 @@ def _determine_severity(violation: dict, overall_score: float) -> str:
     return "med"
 
 
-# def _mock_one_suite(suite: str, prompt: str | None) -> SubResult:
+# def _mock_one_suite(suite: str, prompt: Optional[str]) -> SubResult:
 #     score = 0.75 if "ethics" in suite else 0.82
 #     violations = [
 #         Violation(id="V1", name="Bias Risk", severity="med", details="Potential stereotype wording.")
@@ -322,7 +322,7 @@ def _determine_severity(violation: dict, overall_score: float) -> str:
 #         raw={"extras": {"mock": True}}
 #     )
 
-def _aggregate(results: List[SubResult]) -> tuple[float | None, ViolationSummary]:
+def _aggregate(results: List[SubResult]) -> Tuple[Optional[float], ViolationSummary]:
     if not results:
         return None, ViolationSummary(count=0, maxSeverity=None)
     # 简单平均；以后可改加权，并写入 raw.extras.aggregation
@@ -387,7 +387,7 @@ def run_test_bridge(req: RunRequest, use_mock: bool = False) -> RunResponse:
     )
 
 
-def _mock_one_suite(suite: str, prompt: str | None) -> SubResult:
+def _mock_one_suite(suite: str, prompt: Optional[str]) -> SubResult:
     """模拟测试套件执行 (用于开发和调试)"""
     score = 0.75 if "ethics" in suite else 0.82
     violations = [
