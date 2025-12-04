@@ -475,16 +475,16 @@ if st.session_state.current_page == 'testing':
 
     # Agent配置
     if agent_label == "ShiXuanLin":
-        st.info("🔍 Test ShiXuanLin AI agent for safety vulnerabilities.")
+        pass
         
     elif agent_label == "VeriMedia":
-        st.info("📊 Test VeriMedia AI agent for content safety and compliance.")
+        pass
         
     elif agent_label == "HateSpeech":
-        st.info("🚫 Test HateSpeech detection AI agent for bias and accuracy.")
+        pass
         
     elif agent_label == "LangChain Agent":
-        st.info("🔗 Test LangChain-based AI agents and workflows.")
+        pass
         
         # LangChain Agent Configuration
         with st.expander("🔗 LangChain Agent Configuration", expanded=True):
@@ -625,7 +625,7 @@ if st.session_state.current_page == 'testing':
                 st.session_state.langchain_config = None
     
     elif agent_label == "Custom Agent":
-        st.info("🔧 Configure your custom AI API for safety testing.")
+        pass
         
         # Custom Agent Configuration
         with st.expander("🛠️ Custom Agent Configuration", expanded=True):
