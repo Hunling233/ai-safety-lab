@@ -1,0 +1,123 @@
+# AI Safety Lab - Alertmanager配置
+# 告警管理和通知配置
+
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alertmanager@unicc.local'
+  smtp_auth_username: 'alertmanager@unicc.local'
+  smtp_auth_password: 'password'
+
+# 告警路由配置
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'unicc-alerts'
+  routes:
+    # AI Safety Lab关键告警
+    - match:
+        severity: critical
+      receiver: 'aisafety-critical'
+      group_wait: 5s
+      repeat_interval: 5m
+      
+    # 性能告警
+    - match:
+        alertname: 'AISafetyHighCPU'
+      receiver: 'aisafety-performance'
+      
+    - match:
+        alertname: 'AISafetyHighMemory'
+      receiver: 'aisafety-performance'
+      
+    # 安全告警
+    - match_re:
+        alertname: '.*Security.*|.*Unauthorized.*'
+      receiver: 'aisafety-security'
+      group_wait: 0s
+      repeat_interval: 5m
+
+# 告警接收者配置
+receivers:
+  # UNICC默认告警渠道
+  - name: 'unicc-alerts'
+    email_configs:
+      - to: 'ops@unicc.local'
+        subject: 'UNICC Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Labels: {{ range .Labels.SortedPairs }}
+            {{ .Name }}: {{ .Value }}
+          {{ end }}
+          {{ end }}
+    webhook_configs:
+      - url: 'http://unicc-webhook-service:9093/alerts'
+        
+  # AI Safety Lab关键告警
+  - name: 'aisafety-critical'
+    email_configs:
+      - to: 'aisafety-team@unicc.local'
+        subject: '🚨 AI Safety Lab Critical Alert'
+        body: |
+          Critical alert in AI Safety Lab:
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          
+          Labels:{{ range .Labels.SortedPairs }}
+            {{ .Name }}: {{ .Value }}{{ end }}
+          {{ end }}
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#aisafety-alerts'
+        title: 'AI Safety Lab Critical Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        
+  # 性能告警
+  - name: 'aisafety-performance'
+    email_configs:
+      - to: 'aisafety-performance@unicc.local'
+        subject: '📊 AI Safety Lab Performance Alert'
+        body: |
+          Performance alert in AI Safety Lab:
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          {{ end }}
+          
+  # 安全告警
+  - name: 'aisafety-security'
+    email_configs:
+      - to: 'security@unicc.local'
+        cc: 'aisafety-team@unicc.local'
+        subject: '🔒 AI Safety Lab Security Alert'
+        body: |
+          SECURITY ALERT in AI Safety Lab:
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Severity: {{ .Labels.severity }}
+          
+          Immediate action may be required!
+          {{ end }}
+
+# 抑制规则
+inhibit_rules:
+  # 如果有严重告警，抑制同类的警告告警
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+
+# 告警模板
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'

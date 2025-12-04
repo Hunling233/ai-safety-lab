@@ -1,0 +1,163 @@
+# AI Safety Lab - Kubernetes Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-safety-backend
+  namespace: unicc-aisafety
+  labels:
+    app: ai-safety-backend
+    component: backend
+    environment: production
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-safety-backend
+  template:
+    metadata:
+      labels:
+        app: ai-safety-backend
+        component: backend
+    spec:
+      serviceAccountName: ai-safety-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: backend
+        image: unicc/ai-safety-lab:latest
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: AI_SAFETY_ENV
+          value: "production"
+        - name: PYTHONPATH
+          value: "/app"
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: ai-safety-config
+              key: log_level
+        envFrom:
+        - secretRef:
+            name: ai-safety-secrets
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: runs-storage
+          mountPath: /app/runs
+        - name: config-volume
+          mountPath: /app/config
+          readOnly: true
+        - name: logs-volume
+          mountPath: /app/logs
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+      volumes:
+      - name: runs-storage
+        persistentVolumeClaim:
+          claimName: ai-safety-runs-pvc
+      - name: config-volume
+        configMap:
+          name: ai-safety-config
+      - name: logs-volume
+        persistentVolumeClaim:
+          claimName: ai-safety-logs-pvc
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-safety-frontend
+  namespace: unicc-aisafety
+  labels:
+    app: ai-safety-frontend
+    component: frontend
+    environment: production
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-safety-frontend
+  template:
+    metadata:
+      labels:
+        app: ai-safety-frontend
+        component: frontend
+    spec:
+      serviceAccountName: ai-safety-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: frontend
+        image: unicc/ai-safety-lab:latest
+        ports:
+        - containerPort: 8501
+          name: streamlit
+        env:
+        - name: AI_SAFETY_ENV
+          value: "production"
+        - name: BACKEND_URL
+          value: "http://ai-safety-backend-service:8000"
+        - name: STREAMLIT_SERVER_PORT
+          value: "8501"
+        - name: STREAMLIT_SERVER_ADDRESS
+          value: "0.0.0.0"
+        command: ["streamlit", "run", "ui/app.py"]
+        args: ["--server.port=8501", "--server.address=0.0.0.0"]
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        volumeMounts:
+        - name: runs-storage
+          mountPath: /app/runs
+          readOnly: true
+        - name: config-volume
+          mountPath: /app/config
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8501
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8501
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: runs-storage
+        persistentVolumeClaim:
+          claimName: ai-safety-runs-pvc
+      - name: config-volume
+        configMap:
+          name: ai-safety-config

@@ -18,6 +18,12 @@ graph_tiger
 
 # HTML/XML parsing
 beautifulsoup4>=4.12.0
+
+# LangChain support (optional)
+# Uncomment to enable LangChain integration:
+# langchain>=0.1.0
+# langchain-openai>=0.1.0
+# langchain-community>=0.0.10
 lxml>=4.9.0
 
 # PDF processing

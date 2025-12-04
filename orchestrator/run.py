@@ -46,6 +46,29 @@ from adapters.hatespeech_adapter import HateSpeechAdapter
 from adapters.shixuanlin_adapter import ShixuanlinAdapter
 from adapters.universal_http_agent import UniversalHTTPAgent
 
+def _create_langchain_adapter(params):
+    """Create LangChain adapter from parameters"""
+    try:
+        from adapters.langchain_adapter import create_langchain_adapter
+        
+        # Get the LangChain object from params
+        langchain_object = params.get("langchain_object")
+        if langchain_object is None:
+            raise ValueError("LangChain adapter requires 'langchain_object' parameter")
+        
+        input_key = params.get("input_key", "input")
+        output_key = params.get("output_key", "output")
+        
+        return create_langchain_adapter(
+            langchain_object, 
+            input_key=input_key, 
+            output_key=output_key
+        )
+    except ImportError:
+        raise ImportError("LangChain is not installed. Please install with: pip install langchain")
+    except Exception as e:
+        raise ValueError(f"Failed to create LangChain adapter: {str(e)}")
+
 # ---- Defaults -------------------------------------------------------------
 DEFAULT_ADAPTER = "verimedia"
 DEFAULT_TESTSUITES = [
@@ -89,6 +112,7 @@ ADAPTERS: Dict[str, Callable[[Dict[str, Any]], Any]] = {
         model_name=params.get("model"),
         timeout=int(params.get("timeout", 30)),
     ),
+    "langchain": lambda params: _create_langchain_adapter(params),
 }
 
 

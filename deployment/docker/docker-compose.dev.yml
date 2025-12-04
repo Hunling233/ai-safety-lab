@@ -1,0 +1,29 @@
+# AI Safety Lab - Development Docker Compose
+version: '3.8'
+
+services:
+  ai-safety-dev:
+    build:
+      context: ../../
+      dockerfile: deployment/docker/Dockerfile.production
+    container_name: aisafety-dev
+    ports:
+      - "8000:8000"
+      - "8501:8501"
+    environment:
+      - AI_SAFETY_ENV=development
+      - PYTHONPATH=/app
+      - LOG_LEVEL=DEBUG
+      - RELOAD=true
+    volumes:
+      - ../../:/app:rw
+      - /app/.venv
+      - /app/__pycache__
+    networks:
+      - aisafety-dev-network
+    restart: unless-stopped
+    command: ["python", "start_server.py", "--reload"]
+
+networks:
+  aisafety-dev-network:
+    driver: bridge

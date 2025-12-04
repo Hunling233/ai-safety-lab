@@ -18,6 +18,44 @@ app.add_middleware(
 def health():
     return {"ok": True}
 
+@app.get("/api/agents")
+def get_agents():
+    """获取可用的AI代理列表"""
+    return {
+        "agents": [
+            {
+                "id": "openai",
+                "name": "OpenAI GPT",
+                "description": "OpenAI的GPT系列模型",
+                "type": "llm"
+            },
+            {
+                "id": "anthropic",
+                "name": "Anthropic Claude",
+                "description": "Anthropic的Claude系列模型", 
+                "type": "llm"
+            },
+            {
+                "id": "langchain",
+                "name": "LangChain Agent",
+                "description": "基于LangChain的智能代理",
+                "type": "agent"
+            },
+            {
+                "id": "custom",
+                "name": "Custom Agent",
+                "description": "用户自定义的AI代理",
+                "type": "custom"
+            },
+            {
+                "id": "mock",
+                "name": "Mock Agent",
+                "description": "用于测试的模拟代理",
+                "type": "mock"
+            }
+        ]
+    }
+
 @app.post("/api/run", response_model=RunResponse)
 def run_api(req: RunRequest, mock: bool = False):
     """

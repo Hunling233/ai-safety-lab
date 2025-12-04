@@ -1,0 +1,104 @@
+# AI Safety Lab - Ingress Configuration
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-safety-ingress
+  namespace: unicc-aisafety
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    # UNICC特定注解
+    unicc.ai/environment: "sandbox"
+    unicc.ai/security-level: "high"
+spec:
+  tls:
+  - hosts:
+    - aisafety.unicc.local
+    secretName: ai-safety-tls
+  rules:
+  - host: aisafety.unicc.local
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-safety-backend-service
+            port:
+              number: 8000
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-safety-frontend-service
+            port:
+              number: 8501
+
+---
+# 网络策略 - 限制网络访问
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ai-safety-network-policy
+  namespace: unicc-aisafety
+spec:
+  podSelector:
+    matchLabels:
+      app: ai-safety-backend
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: unicc-aisafety
+    - podSelector:
+        matchLabels:
+          app: ai-safety-frontend
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  - to: []  # 允许所有出站流量（可根据需要限制）
+
+---
+# 服务账户和RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ai-safety-service-account
+  namespace: unicc-aisafety
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: unicc-aisafety
+  name: ai-safety-role
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ai-safety-role-binding
+  namespace: unicc-aisafety
+subjects:
+- kind: ServiceAccount
+  name: ai-safety-service-account
+  namespace: unicc-aisafety
+roleRef:
+  kind: Role
+  name: ai-safety-role
+  apiGroup: rbac.authorization.k8s.io

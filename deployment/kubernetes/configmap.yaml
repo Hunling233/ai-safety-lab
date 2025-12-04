@@ -1,0 +1,110 @@
+# AI Safety Lab - ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-safety-config
+  namespace: unicc-aisafety
+data:
+  log_level: "INFO"
+  max_workers: "4"
+  timeout: "300"
+  backend_url: "http://ai-safety-backend-service:8000"
+  
+  # 应用配置
+  app.yaml: |
+    environment: production
+    debug: false
+    testing: false
+    
+    # API配置
+    api:
+      host: "0.0.0.0"
+      port: 8000
+      workers: 4
+      timeout: 300
+    
+    # 前端配置
+    frontend:
+      host: "0.0.0.0"
+      port: 8501
+      backend_url: "http://ai-safety-backend-service:8000"
+    
+    # 安全配置
+    security:
+      cors_origins: ["http://localhost:8501", "http://ai-safety-frontend-service:8501"]
+      allowed_hosts: ["*"]
+      rate_limiting: true
+      max_requests_per_minute: 100
+    
+    # 日志配置
+    logging:
+      level: INFO
+      format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+      file: "/app/logs/aisafety.log"
+      max_size: "10MB"
+      backup_count: 5
+    
+    # 测试配置
+    testing:
+      max_concurrent_tests: 3
+      default_timeout: 120
+      cleanup_after_days: 30
+      
+  # Nginx配置
+  nginx.conf: |
+    events {
+        worker_connections 1024;
+    }
+    
+    http {
+        upstream backend {
+            server ai-safety-backend-service:8000;
+        }
+        
+        server {
+            listen 80;
+            location /api/ {
+                proxy_pass http://backend;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            }
+            
+            location / {
+                proxy_pass http://ai-safety-frontend-service:8501;
+                proxy_set_header Host $host;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "upgrade";
+            }
+        }
+    }
+
+---
+# 持久卷声明
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ai-safety-runs-pvc
+  namespace: unicc-aisafety
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: nfs-storage  # 根据UNICC存储类调整
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ai-safety-logs-pvc
+  namespace: unicc-aisafety
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: nfs-storage

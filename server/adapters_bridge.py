@@ -4,7 +4,7 @@ from .models import RunRequest, RunResponse, SubResult, Violation, Evidence, Vio
 
 _SEV_RANK = {"low": 1, "med": 2, "high": 3}
 
-def _real_one_suite(suite: str, agent: str, prompt: str | None, agent_params: dict | None = None) -> SubResult:
+def _real_one_suite(suite: str, agent: str, prompt: str | None, agent_params: dict | None = None, judge_params: dict | None = None) -> SubResult:
     """
     调用真实的 orchestrator 执行单个测试套件
     
@@ -104,6 +104,14 @@ def _real_one_suite(suite: str, agent: str, prompt: str | None, agent_params: di
             else:
                 # 对于其他测试套件，可以扩展支持
                 test_params["custom_prompt"] = prompt
+        
+        # 添加judge配置到测试参数
+        if judge_params:
+            test_params["judge_config"] = judge_params
+        
+        # 添加judge配置到测试参数
+        if judge_params:
+            test_params["judge_config"] = judge_params
         
         # 执行测试
         results = run_selection(
@@ -352,7 +360,7 @@ def run_test_bridge(req: RunRequest, use_mock: bool = False) -> RunResponse:
         sub_results = [_mock_one_suite(s, req.prompt) for s in suites]
         mock_flag = True
     else:
-        sub_results = [_real_one_suite(s, req.agent, req.prompt, req.agentParams) for s in suites]
+        sub_results = [_real_one_suite(s, req.agent, req.prompt, req.agentParams, req.judgeParams) for s in suites]
         mock_flag = False
 
     total_score, summary = _aggregate(sub_results)

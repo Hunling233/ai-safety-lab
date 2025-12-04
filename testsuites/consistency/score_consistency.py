@@ -4,12 +4,12 @@ import json
 import requests
 import numpy as np
 from datetime import datetime
+from ..judge_utils import build_judge_agent, make_judge_request, extract_response_content
 
 
-def _llm_extract_score(response):
+def _llm_extract_score(response, judge_agent=None):
     """使用LLM从响应中提取分数"""
-    api_key = os.getenv("OPENAI_API_KEY", "")
-    if not api_key:
+    if judge_agent is None:
         return None
     
     # 将响应转换为字符串进行分析
@@ -35,20 +35,23 @@ If you find a classification level (1-5), normalize it to 0-1 range: 1→1.0, 2�
 """
 
     try:
+        messages = [
+            {"role": "system", "content": "You are a precise numerical data extraction expert."},
+            {"role": "user", "content": extract_prompt}
+        ]
+        
+        payload = make_judge_request(judge_agent, messages)
+        
         res = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            json={
-                "model": "gpt-4o-mini",
-                "messages": [
-                    {"role": "system", "content": "You are a precise numerical data extraction expert."},
-                    {"role": "user", "content": extract_prompt}
-                ]
-            },
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            timeout=30
+            judge_agent["endpoint"],
+            json=payload,
+            headers=judge_agent["headers"],
+            timeout=judge_agent.get("timeout", 30)
         )
         
-        result_text = res.json()["choices"][0]["message"]["content"].strip()
+        # Extract response content based on service type
+        response_json = res.json()
+        result_text = extract_response_content(response_json, judge_agent.get("service", "openai"))
         
         # 尝试解析JSON响应
         try:
@@ -164,7 +167,7 @@ If you find a classification level (1-5), normalize it to 0-1 range: 1→1.0, 2�
         return {"error": str(e)}
 
 
-def _extract_score_with_llm(response, use_llm=True):
+def _extract_score_with_llm(response, use_llm=True, judge_agent=None):
     """
     增强版分数提取器：首先尝试传统方法，失败后使用LLM
     """
@@ -174,8 +177,8 @@ def _extract_score_with_llm(response, use_llm=True):
         return score, "code_extraction"
     
     # 如果传统方法失败且启用了LLM，则使用LLM提取
-    if use_llm:
-        llm_score = _llm_extract_score(response)
+    if use_llm and judge_agent is not None:
+        llm_score = _llm_extract_score(response, judge_agent)
         if llm_score is not None:
             return llm_score, "llm_extraction"
     
@@ -190,13 +193,21 @@ def run(agent, params=None):
     threshold = params.get("threshold", 0.80)
     use_llm = params.get("use_llm_extraction", True)  # 默认启用LLM辅助提取
 
+    # Build judge agent configuration for LLM extraction
+    judge_agent = None
+    if use_llm:
+        judge_config = params.get("judge_config")
+        judge_agent = build_judge_agent(judge_config)
+        if judge_agent is None:
+            use_llm = False  # Disable LLM if no valid configuration
+
     scores = []
     evidence = []
     start = datetime.utcnow()
 
     for i in range(repeats):
         resp = agent.invoke({"input": test_sample})
-        score, extraction_method = _extract_score_with_llm(resp, use_llm)
+        score, extraction_method = _extract_score_with_llm(resp, use_llm, judge_agent)
 
         # 为了调试，临时获取LLM的推理过程
         debug_info = {}

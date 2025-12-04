@@ -467,6 +467,7 @@ if st.session_state.current_page == 'testing':
         "HateSpeech": "hatespeech",
         "HTTP Agent": "http",
         "Custom Agent": "custom",
+        "LangChain Agent": "langchain",
     }
 
     agent_label = st.selectbox("Select AI Agent Under Test", list(AGENT_OPTIONS.keys()), 
@@ -483,6 +484,147 @@ if st.session_state.current_page == 'testing':
         st.info("ℹ️ HateSpeech agent may require additional configuration.")
     elif agent_label == "HTTP Agent":
         st.info("ℹ️ HTTP Agent requires endpoint configuration.")
+    elif agent_label == "LangChain Agent":
+        st.info("🔗 Test LangChain-based AI agents and workflows.")
+        
+        # LangChain Agent Configuration
+        with st.expander("🔗 LangChain Agent Configuration", expanded=True):
+            st.markdown("**Configure your LangChain agent for safety testing**")
+            
+            langchain_type = st.selectbox(
+                "LangChain Component Type *",
+                options=["simple_llm", "conversation_chain", "llm_chain", "agent_with_tools"],
+                format_func=lambda x: {
+                    "simple_llm": "🧠 Simple LLM (OpenAI, Claude, etc.)",
+                    "conversation_chain": "💬 Conversation Chain (with memory)",
+                    "llm_chain": "⛓️ LLM Chain (with prompt template)",
+                    "agent_with_tools": "🛠️ Agent with Tools (ReAct, etc.)"
+                }[x],
+                help="Select the type of LangChain component you want to test"
+            )
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                langchain_agent_name = st.text_input(
+                    "Agent Name *",
+                    placeholder="My LangChain Agent",
+                    help="A friendly name for your LangChain agent"
+                )
+                
+                langchain_api_key = st.text_input(
+                    "API Key *",
+                    type="password",
+                    placeholder="Enter your OpenAI/Anthropic/etc. API key",
+                    help="API key for the underlying LLM service"
+                )
+            
+            with col2:
+                langchain_model = st.selectbox(
+                    "Model Type *",
+                    options=["openai", "anthropic", "huggingface", "custom"],
+                    format_func=lambda x: {
+                        "openai": "OpenAI (GPT-3.5, GPT-4)",
+                        "anthropic": "Anthropic (Claude)",
+                        "huggingface": "HuggingFace Models",
+                        "custom": "Custom Model"
+                    }[x],
+                    help="Select the LLM provider"
+                )
+                
+                langchain_temperature = st.slider(
+                    "Temperature",
+                    min_value=0.0,
+                    max_value=2.0,
+                    value=0.7,
+                    step=0.1,
+                    help="Controls randomness in responses"
+                )
+            
+            # Initialize configuration variables
+            custom_prompt_template = None
+            selected_tools = None
+            memory_type = None
+            
+            # Additional configuration based on type
+            if langchain_type == "llm_chain":
+                st.markdown("**Chain Configuration**")
+                custom_prompt_template = st.text_area(
+                    "Prompt Template (Optional)",
+                    placeholder="You are a helpful assistant. User: {input}\nAssistant:",
+                    help="Custom prompt template with {input} placeholder"
+                )
+            
+            elif langchain_type == "agent_with_tools":
+                st.markdown("**Agent Tools Configuration**")
+                selected_tools = st.multiselect(
+                    "Select Tools",
+                    options=["llm-math", "wikipedia", "google-search", "python_repl"],
+                    default=["llm-math"],
+                    help="Tools that the agent can use"
+                )
+            
+            elif langchain_type == "conversation_chain":
+                st.markdown("**Memory Configuration**")
+                memory_type = st.selectbox(
+                    "Memory Type",
+                    options=["buffer", "summary", "kg"],
+                    format_func=lambda x: {
+                        "buffer": "Buffer Memory (remembers all)",
+                        "summary": "Summary Memory (summarizes old messages)", 
+                        "kg": "Knowledge Graph Memory"
+                    }[x]
+                )
+            
+            # Test LangChain Setup Button
+            if st.button("🧪 Test LangChain Setup", type="secondary", key="test_langchain"):
+                if langchain_agent_name and langchain_api_key:
+                    try:
+                        with st.spinner("Testing LangChain setup..."):
+                            # Try to import LangChain
+                            try:
+                                import langchain
+                                from langchain.llms import OpenAI
+                                st.success("✅ LangChain libraries available")
+                                
+                                # Test basic setup
+                                if langchain_model == "openai":
+                                    os.environ['OPENAI_API_KEY'] = langchain_api_key
+                                    test_llm = OpenAI(temperature=langchain_temperature, max_tokens=50)
+                                    
+                                    # Simple test
+                                    response = test_llm.invoke("Hello, this is a test.")
+                                    st.success(f"✅ LangChain agent test successful!")
+                                    st.code(f"Test response: {response[:100]}...", language="text")
+                                else:
+                                    st.info(f"✅ Configuration saved for {langchain_model} model")
+                                    
+                            except ImportError:
+                                st.error("❌ LangChain not installed. Please install: pip install langchain langchain-openai")
+                            except Exception as e:
+                                st.error(f"❌ LangChain test failed: {str(e)}")
+                                
+                    except Exception as e:
+                        st.error(f"❌ Setup test failed: {str(e)}")
+                else:
+                    st.warning("⚠️ Please provide Agent Name and API Key to test setup.")
+            
+            # Store LangChain config in session state
+            if langchain_agent_name and langchain_api_key:
+                st.session_state.langchain_config = {
+                    "name": langchain_agent_name,
+                    "type": langchain_type,
+                    "model": langchain_model,
+                    "api_key": langchain_api_key,
+                    "temperature": langchain_temperature,
+                    "prompt_template": custom_prompt_template if langchain_type == "llm_chain" else None,
+                    "tools": selected_tools if langchain_type == "agent_with_tools" else None,
+                    "memory_type": memory_type if langchain_type == "conversation_chain" else None,
+                }
+                st.success("✅ LangChain agent configuration saved for this session.")
+            else:
+                st.session_state.langchain_config = None
+    
     elif agent_label == "Custom Agent":
         st.info("🔧 Configure your custom AI API for safety testing.")
         
@@ -576,6 +718,143 @@ if st.session_state.current_page == 'testing':
             else:
                 st.session_state.custom_agent_config = None
 
+    # AI Judge Configuration - only show for applicable tests
+    if agent_label in ["VeriMedia", "ShiXuanLin", "HTTP Agent", "Custom Agent"]:
+        st.markdown("### 🧠 AI Judge Configuration")
+        st.markdown("*Configure the AI agent that will help evaluate test results (used for scoring, security reviews, etc.)*")
+        
+        with st.expander("🤖 AI Judge Settings", expanded=False):
+            judge_option = st.radio(
+                "Select AI Judge",
+                options=["default", "custom"],
+                format_func=lambda x: "🔄 Use Default (OpenAI from config)" if x == "default" else "⚙️ Custom AI Judge",
+                help="Default uses OpenAI API from your config/openai.env file. Custom lets you choose different AI services."
+            )
+            
+            if judge_option == "default":
+                st.info("🔄 Using OpenAI API from your existing configuration (config/openai.env)")
+                st.session_state.judge_config = None
+                
+            else:  # custom
+                st.markdown("**Configure Custom AI Judge**")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    judge_service = st.selectbox(
+                        "AI Service *",
+                        options=["openai", "claude", "gemini", "azure_openai", "openai_compatible"],
+                        format_func=lambda x: {
+                            "openai": "OpenAI (GPT-4/GPT-3.5)",
+                            "claude": "Anthropic Claude",  
+                            "gemini": "Google Gemini",
+                            "azure_openai": "Azure OpenAI",
+                            "openai_compatible": "OpenAI Compatible API"
+                        }[x],
+                        help="Choose the AI service for evaluation tasks"
+                    )
+                    
+                    judge_api_key = st.text_input(
+                        "Judge API Key *",
+                        type="password",
+                        placeholder="Enter API key for judge",
+                        help="API key for the AI judge service"
+                    )
+                
+                with col2:
+                    if judge_service == "openai":
+                        default_endpoint = "https://api.openai.com/v1/chat/completions"
+                        default_model = "gpt-4o-mini"
+                    elif judge_service == "claude":
+                        default_endpoint = "https://api.anthropic.com/v1/messages"  
+                        default_model = "claude-3-haiku-20240307"
+                    elif judge_service == "gemini":
+                        default_endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+                        default_model = "gemini-1.5-flash"
+                    elif judge_service == "azure_openai":
+                        default_endpoint = "https://your-resource.openai.azure.com/openai/deployments/your-deployment/chat/completions?api-version=2024-02-15-preview"
+                        default_model = "gpt-4o-mini"
+                    else:  # openai_compatible
+                        default_endpoint = "https://api.openai.com/v1/chat/completions"
+                        default_model = "gpt-3.5-turbo"
+                    
+                    judge_endpoint = st.text_input(
+                        "Judge API Endpoint",
+                        value=default_endpoint,
+                        help="API endpoint for the judge service"
+                    )
+                    
+                    judge_model = st.text_input(
+                        "Judge Model",
+                        value=default_model,
+                        help="Model name for evaluation tasks"
+                    )
+                
+                # Test Judge Connection
+                if st.button("🧪 Test Judge Connection", type="secondary", key="test_judge"):
+                    if judge_api_key and judge_endpoint:
+                        try:
+                            with st.spinner("Testing judge connection..."):
+                                # Simple test request based on service type
+                                import requests
+                                
+                                if judge_service in ["openai", "openai_compatible", "azure_openai"]:
+                                    headers = {"Authorization": f"Bearer {judge_api_key}", "Content-Type": "application/json"}
+                                    if judge_service == "azure_openai":
+                                        headers["api-key"] = judge_api_key
+                                    
+                                    payload = {
+                                        "model": judge_model,
+                                        "messages": [{"role": "user", "content": "Hello, this is a test."}],
+                                        "max_tokens": 10
+                                    }
+                                    
+                                    resp = requests.post(judge_endpoint, json=payload, headers=headers, timeout=10)
+                                    
+                                elif judge_service == "claude":
+                                    headers = {"x-api-key": judge_api_key, "Content-Type": "application/json", "anthropic-version": "2023-06-01"}
+                                    payload = {
+                                        "model": judge_model,
+                                        "max_tokens": 10,
+                                        "messages": [{"role": "user", "content": "Hello, this is a test."}]
+                                    }
+                                    
+                                    resp = requests.post(judge_endpoint, json=payload, headers=headers, timeout=10)
+                                
+                                elif judge_service == "gemini":
+                                    headers = {"Content-Type": "application/json"}
+                                    endpoint_with_key = f"{judge_endpoint}?key={judge_api_key}"
+                                    endpoint_with_model = endpoint_with_key.replace("{model}", judge_model)
+                                    payload = {
+                                        "contents": [{"parts": [{"text": "Hello, this is a test."}]}],
+                                        "generationConfig": {"maxOutputTokens": 10}
+                                    }
+                                    
+                                    resp = requests.post(endpoint_with_model, json=payload, headers=headers, timeout=10)
+                                
+                                if resp.status_code == 200:
+                                    st.success("✅ Judge connection successful!")
+                                else:
+                                    st.error(f"❌ Connection failed: {resp.status_code} - {resp.text[:200]}")
+                                    
+                        except Exception as e:
+                            st.error(f"❌ Judge test failed: {str(e)}")
+                    else:
+                        st.warning("⚠️ Please provide API Key and Endpoint for judge testing.")
+                
+                # Store judge config
+                if judge_api_key and judge_endpoint:
+                    st.session_state.judge_config = {
+                        "service": judge_service,
+                        "api_key": judge_api_key,
+                        "endpoint": judge_endpoint, 
+                        "model": judge_model
+                    }
+                    st.success("✅ Custom judge configuration saved!")
+                else:
+                    if 'judge_config' in st.session_state:
+                        del st.session_state.judge_config
+
     st.markdown("### Select AI Testing Type")
     st.markdown("*Choose the AI type you want to test, and the system will automatically select the corresponding test projects*")
 
@@ -658,6 +937,17 @@ if st.session_state.current_page == 'testing':
                 st.error("❌ Custom Agent requires Agent Name, API Endpoint and API Key!")
                 st.stop()
         
+        # Check if LangChain agent is configured properly
+        if agent == "langchain":
+            if not hasattr(st.session_state, 'langchain_config') or not st.session_state.langchain_config:
+                st.error("❌ Please configure LangChain Agent settings first!")
+                st.stop()
+            
+            langchain_config = st.session_state.langchain_config
+            if not langchain_config.get("name") or not langchain_config.get("api_key"):
+                st.error("❌ LangChain Agent requires Agent Name and API Key!")
+                st.stop()
+        
         payload = {
             "agent": agent,
             "testSuite": suites if len(suites) > 1 else suites[0],
@@ -674,6 +964,30 @@ if st.session_state.current_page == 'testing':
                 "model": custom_config.get("model"),
                 "timeout": 60
             }
+        
+        # Add LangChain agent configuration to payload
+        if agent == "langchain" and hasattr(st.session_state, 'langchain_config'):
+            langchain_config = st.session_state.langchain_config
+            payload["agentParams"] = {
+                "type": langchain_config["type"],
+                "model": langchain_config["model"],
+                "api_key": langchain_config["api_key"],
+                "temperature": langchain_config["temperature"],
+                "prompt_template": langchain_config.get("prompt_template"),
+                "tools": langchain_config.get("tools"),
+                "memory_type": langchain_config.get("memory_type"),
+                "timeout": 60
+            }
+        
+        # Add judge configuration to payload if available
+        if hasattr(st.session_state, 'judge_config') and st.session_state.judge_config:
+            judge_config = st.session_state.judge_config
+            payload["judgeParams"] = {
+                "service": judge_config["service"],
+                "api_key": judge_config["api_key"],
+                "endpoint": judge_config["endpoint"],
+                "model": judge_config["model"]
+            }
 
         with st.spinner("Running tests... Please wait"):
             try:
@@ -689,6 +1003,8 @@ if st.session_state.current_page == 'testing':
                 display_agent_name = agent_label
                 if agent == "custom" and hasattr(st.session_state, 'custom_agent_config') and st.session_state.custom_agent_config:
                     display_agent_name = st.session_state.custom_agent_config.get("name", agent_label)
+                elif agent == "langchain" and hasattr(st.session_state, 'langchain_config') and st.session_state.langchain_config:
+                    display_agent_name = st.session_state.langchain_config.get("name", agent_label)
                 
                 test_record = {
                     'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -878,6 +1194,8 @@ if st.session_state.current_page == 'testing':
                 display_agent_name = agent_label
                 if agent == "custom" and hasattr(st.session_state, 'custom_agent_config') and st.session_state.custom_agent_config:
                     display_agent_name = st.session_state.custom_agent_config.get("name", agent_label)
+                elif agent == "langchain" and hasattr(st.session_state, 'langchain_config') and st.session_state.langchain_config:
+                    display_agent_name = st.session_state.langchain_config.get("name", agent_label)
                 
                 pdf_data = {
                     'agent': display_agent_name,
