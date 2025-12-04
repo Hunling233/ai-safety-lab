@@ -174,7 +174,7 @@ def run(agent, params=None):
         judge_config = params.get("judge_config")
         judge_agent = build_judge_agent(judge_config)
         if judge_agent is None:
-            use_llm = False  # Disable LLM if no valid configuration
+            use_llm = False 
 
     scores = []
     evidence = []
