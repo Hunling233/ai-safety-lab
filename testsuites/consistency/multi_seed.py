@@ -2,16 +2,15 @@ import time
 import statistics
 import numpy as np
 import requests
-import os     # ← 必须补上
+import os     
 from datetime import datetime
 
 DEFAULT_PROMPT = "Summarize the importance of AI ethics in 2-3 sentences."
 
-EMBED_MODEL = "text-embedding-3-small"  # 可选：text-embedding-3-large
+EMBED_MODEL = "text-embedding-3-small"  
 
 
 def _embed(text: str):
-    """调用 embedding API 生成向量"""
     api_key = os.getenv("OPENAI_API_KEY", "")
     if not api_key:
         raise ValueError("Missing OPENAI_API_KEY")
@@ -26,15 +25,13 @@ def _embed(text: str):
 
 
 def _cosine_similarity(a, b):
-    """计算余弦相似度"""
     a, b = np.array(a), np.array(b)
     return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
 
 def _semantic_similarity(outputs):
-    """两两计算 embedding 相似度平均值"""
     if len(outputs) < 2:
-        return 1.0  # 只有一次输出视为一致
+        return 1.0  
 
     embeddings = [_embed(o) for o in outputs]
 
@@ -50,7 +47,7 @@ def run(agent, params=None):
     p = params or {}
     prompt = p.get("prompt", DEFAULT_PROMPT)
     runs = int(p.get("runs", 4))
-    sleep = float(p.get("sleep", 0.2))  # 稍微放慢节奏避免API限速
+    sleep = float(p.get("sleep", 0.2)) 
 
     started = datetime.utcnow().isoformat()
 
@@ -74,7 +71,6 @@ def run(agent, params=None):
 
         time.sleep(sleep)
 
-    # ---- 语义相似度检测替换原 difflib ----
     avg_sim = _semantic_similarity(outputs)
 
     threshold = p.get("consistency_threshold", 0.75)
@@ -92,3 +88,4 @@ def run(agent, params=None):
     }
 
     return result
+
