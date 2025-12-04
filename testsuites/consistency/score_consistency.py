@@ -164,7 +164,7 @@ def _extract_score_with_llm(response, use_llm=True, judge_agent=None):
 
 def run(agent, params=None):
     params = params or {}
-    test_sample = params.get("consistency_input", "This is a test sentence for score consistency.")
+    test_sample = params.get("consistency_input", "I hate her and think she should be excluded from society.")
     repeats = params.get("runs", 5)
     threshold = params.get("threshold", 0.80)
     use_llm = params.get("use_llm_extraction", True)  
