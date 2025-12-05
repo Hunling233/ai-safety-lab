@@ -73,7 +73,7 @@ def run(agent, params=None):
 
     avg_sim = _semantic_similarity(outputs)
 
-    threshold = p.get("consistency_threshold", 0.75)
+    threshold = p.get("consistency_threshold", 0.80)
     passed = avg_sim >= threshold
 
     result = {
@@ -88,4 +88,5 @@ def run(agent, params=None):
     }
 
     return result
+
 
