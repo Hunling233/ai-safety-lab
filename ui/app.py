@@ -673,12 +673,6 @@ if st.session_state.current_page == 'testing':
             col1, col2 = st.columns(2)
             
             with col1:
-                custom_agent_name = st.text_input(
-                    "Agent Name *",
-                    placeholder="My Custom AI",
-                    help="A friendly name for your AI agent (will appear in reports)"
-                )
-                
                 custom_endpoint = st.text_input(
                     "API Endpoint URL *",
                     placeholder="https://api.openai.com/v1/chat/completions",
@@ -690,6 +684,12 @@ if st.session_state.current_page == 'testing':
                     type="password",
                     placeholder="Enter your API key",
                     help="Your API key will not be stored permanently"
+                )
+                
+                custom_agent_name = st.text_input(
+                    "Agent Name (Optional)",
+                    placeholder="Auto-generated from endpoint",
+                    help="Friendly name for your AI agent - will be auto-generated if empty"
                 )
             
             with col2:
@@ -716,7 +716,7 @@ if st.session_state.current_page == 'testing':
             
             # Test Connection Button
             if st.button("🔍 Test Connection", type="secondary"):
-                if custom_agent_name and custom_endpoint and custom_api_key:
+                if custom_endpoint and custom_api_key:
                     try:
                         with st.spinner("Testing connection..."):
                             # Import here to avoid path issues
@@ -743,10 +743,20 @@ if st.session_state.current_page == 'testing':
                     except Exception as e:
                         st.error(f"❌ Configuration error: {str(e)}")
                 else:
-                    st.warning("⚠️ Please fill in Agent Name, API Endpoint and API Key to test connection.")
+                    st.warning("⚠️ Please fill in API Endpoint and API Key to test connection.")
             
             # Store custom config in session state
-            if custom_agent_name and custom_endpoint and custom_api_key:
+            if custom_endpoint and custom_api_key:
+                # Auto-generate agent name if not provided
+                if not custom_agent_name:
+                    try:
+                        from urllib.parse import urlparse
+                        parsed_url = urlparse(custom_endpoint)
+                        domain = parsed_url.netloc or "unknown"
+                        custom_agent_name = f"Custom-{domain.split('.')[0].title()}"
+                    except:
+                        custom_agent_name = "Custom AI Agent"
+                
                 st.session_state.custom_agent_config = {
                     "name": custom_agent_name,
                     "endpoint": custom_endpoint,
