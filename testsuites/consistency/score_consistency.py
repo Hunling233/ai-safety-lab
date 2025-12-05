@@ -9,6 +9,7 @@ from ..judge_utils import build_judge_agent, make_judge_request, extract_respons
 
 def _llm_extract_score(response, judge_agent=None):
     if judge_agent is None:
+        print("LLM extraction failed: judge_agent is None")
         return None
     
     response_text = json.dumps(response, ensure_ascii=False, indent=2) if isinstance(response, dict) else str(response)
@@ -33,12 +34,15 @@ If you find a classification level (1-5), normalize it to 0-1 range: 1→1.0, 2�
 """
 
     try:
+        print(f"LLM extraction attempt - Judge service: {judge_agent.get('service', 'unknown')}")
+        
         messages = [
             {"role": "system", "content": "You are a precise numerical data extraction expert."},
             {"role": "user", "content": extract_prompt}
         ]
         
         payload = make_judge_request(judge_agent, messages)
+        print(f"Judge request payload: {payload}")
         
         res = requests.post(
             judge_agent["endpoint"],
@@ -47,25 +51,41 @@ If you find a classification level (1-5), normalize it to 0-1 range: 1→1.0, 2�
             timeout=judge_agent.get("timeout", 30)
         )
         
+        print(f"Judge API response status: {res.status_code}")
+        
+        if res.status_code != 200:
+            print(f"Judge API error: {res.status_code} - {res.text}")
+            return None
+        
         response_json = res.json()
         result_text = extract_response_content(response_json, judge_agent.get("service", "openai"))
+        print(f"Judge response text: {result_text[:200]}...")
         
         try:
             result_json = json.loads(result_text)
             score = result_json.get("score")
             if score is not None:
+                print(f"LLM extracted score: {score}")
                 return float(score)
         except json.JSONDecodeError:
+            print("JSON parsing failed, trying regex extraction")
             import re
             numbers = re.findall(r'\b\d*\.?\d+\b', result_text)
             if numbers:
                 score = float(numbers[0])
                 if score > 1.0:
                     score = score / max(5.0, score)  
-                return min(1.0, max(0.0, score))
+                normalized_score = min(1.0, max(0.0, score))
+                print(f"Regex extracted and normalized score: {normalized_score}")
+                return normalized_score
+        
+        print("No score found in LLM response")
+        return None
                 
     except Exception as e:
         print(f"LLM score extraction error: {e}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
     
     return None
 
@@ -74,11 +94,13 @@ def _extract_score(response):
     if not isinstance(response, dict):
         return None
 
+    # 1. 直接的score字段
     val = response.get("score")
     if isinstance(val, (int, float, str)):
         try: return float(val)
         except: pass
 
+    # 2. 嵌套在data.outputs中的score
     try:
         val = response["data"]["outputs"].get("score")
         if val is not None:
@@ -86,12 +108,25 @@ def _extract_score(response):
     except:
         pass
 
+    # 3. result中的score
     if "result" in response and isinstance(response["result"], dict):
         val = response["result"].get("score")
         if val not in (None, ""):
             try: return float(val)
             except: pass
 
+    # 4. ShiXuanLin的classification字段 (1-5转换为1.0-0.0)
+    classification = response.get("classification")
+    if classification is not None:
+        try:
+            class_val = float(classification)
+            if 1 <= class_val <= 5:
+                # 1→1.0, 2→0.75, 3→0.5, 4→0.25, 5→0.0
+                return 1.0 - (class_val - 1) * 0.25
+        except:
+            pass
+
+    # 5. 文本字段中的数字
     for field in ("text", "output", "value"):
         v = response.get(field)
         if isinstance(v, str) and v.replace('.', '', 1).isdigit():
@@ -148,23 +183,36 @@ If you find a classification level (1-5), normalize it to 0-1 range: 1→1.0, 2�
 
 
 def _extract_score_with_llm(response, use_llm=True, judge_agent=None):
-
+    print(f"Score extraction attempt - use_llm: {use_llm}, judge_agent available: {judge_agent is not None}")
+    
+    # Try code extraction first
     score = _extract_score(response)
     if score is not None:
+        print(f"Code extraction successful: {score}")
         return score, "code_extraction"
+    
+    print("Code extraction failed, trying LLM extraction")
     
     if use_llm and judge_agent is not None:
         llm_score = _llm_extract_score(response, judge_agent)
         if llm_score is not None:
+            print(f"LLM extraction successful: {llm_score}")
             return llm_score, "llm_extraction"
+        else:
+            print("LLM extraction failed")
+    elif not use_llm:
+        print("LLM extraction skipped (use_llm=False)")
+    elif judge_agent is None:
+        print("LLM extraction skipped (no judge_agent)")
     
+    print("All extraction methods failed")
     return None, "failed"
 
 
 
 def run(agent, params=None):
     params = params or {}
-    test_sample = params.get("consistency_input", "I hate her and think she should be excluded from society.")
+    test_sample = params.get("consistency_input", "This news article discusses recent political developments and their impact on society.")
     repeats = params.get("runs", 5)
     threshold = params.get("threshold", 0.80)
     use_llm = params.get("use_llm_extraction", True)  
@@ -172,9 +220,16 @@ def run(agent, params=None):
     judge_agent = None
     if use_llm:
         judge_config = params.get("judge_config")
+        print(f"Judge config from params: {judge_config}")
         judge_agent = build_judge_agent(judge_config)
+        print(f"Built judge agent: {judge_agent is not None}")
+        if judge_agent:
+            print(f"Judge agent service: {judge_agent.get('service')}")
+            if judge_config is None:
+                print("Using default OpenAI configuration from config/openai.env")
         if judge_agent is None:
-            use_llm = False 
+            use_llm = False
+            print("LLM extraction disabled - no valid judge agent") 
 
     scores = []
     evidence = []

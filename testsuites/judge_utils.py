@@ -3,7 +3,44 @@ Judge utilities for AI Safety Lab test suites.
 Provides unified functions to create and configure AI judges for test evaluation.
 """
 import os
+from pathlib import Path
 from typing import Dict, Any, Optional
+
+
+def _load_openai_config() -> Optional[str]:
+    """
+    Load OpenAI API key from config/openai.env file or environment variable.
+    
+    Returns:
+        OpenAI API key if found, None otherwise
+    """
+    # First try to load from config/openai.env file
+    try:
+        # Get the project root directory
+        current_file = Path(__file__).resolve()
+        project_root = current_file.parents[1]  # Go up two levels from testsuites/judge_utils.py
+        config_file = project_root / "config" / "openai.env"
+        
+        if config_file.exists():
+            with open(config_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith('OPENAI_API_KEY=') and not line.startswith('#'):
+                        api_key = line.split('=', 1)[1].strip()
+                        if api_key and api_key != 'your_api_key_here':
+                            print(f"Loaded OpenAI API key from {config_file}")
+                            return api_key
+    except Exception as e:
+        print(f"Error loading config/openai.env: {e}")
+    
+    # Fallback to environment variable
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key:
+        print("Using OpenAI API key from environment variable")
+        return api_key
+    
+    print("No OpenAI API key found in config file or environment")
+    return None
 
 
 def build_judge_agent(judge_config: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
@@ -66,8 +103,8 @@ def build_judge_agent(judge_config: Optional[Dict[str, Any]] = None) -> Optional
             "timeout": 60
         }
     
-    # Default: try to use OpenAI from environment
-    openai_api_key = os.getenv("OPENAI_API_KEY")
+    # Default: try to use OpenAI from config file or environment
+    openai_api_key = _load_openai_config()
     if openai_api_key:
         return {
             "service": "openai",

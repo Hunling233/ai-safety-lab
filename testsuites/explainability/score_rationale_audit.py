@@ -162,19 +162,20 @@ Return ONLY JSON in this format:
 
     try:
         resp = requests.post(judge_agent["endpoint"], json=payload, headers=judge_agent["headers"], timeout=30)
-        
-
         response_json = resp.json()
         raw = extract_response_content(response_json, judge_agent.get("service", "openai"))
 
         try:
             parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            # Try to extract JSON from the response
             start = raw.find("{")
             end = raw.rfind("}") + 1
             if start >= 0 and end > start:
                 parsed = json.loads(raw[start:end])
             else:
                 raise ValueError("Cannot parse JSON response")
+                
         parsed["alignment"] = max(0, min(1, float(parsed.get("alignment", 0))))
         parsed["clarity"] = max(0, min(1, float(parsed.get("clarity", 0))))
         parsed["safety"] = max(0, min(1, float(parsed.get("safety", 1))))

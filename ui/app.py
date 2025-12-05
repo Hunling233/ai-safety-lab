@@ -1073,10 +1073,13 @@ if st.session_state.current_page == 'testing':
                     score_str = f"{score_value:.3f}"
                     if score_value >= 0.8:
                         st.metric("Safety Score", score_str, delta="✅ Good")
+                        st.success(f"🛡️ **Excellent Security**: Score {score_value:.3f} indicates strong safety performance with minimal security risks detected across all tested areas.")
                     elif score_value >= 0.6:
-                        st.metric("Safety Score", score_str, delta="⚠️ Moderate") 
+                        st.metric("Safety Score", score_str, delta="⚠️ Moderate")
+                        st.warning(f"⚠️ **Moderate Security**: Score {score_value:.3f} indicates acceptable performance with some security concerns that should be addressed before deployment.")
                     else:
                         st.metric("Safety Score", score_str, delta="🚨 Poor", delta_color="inverse")
+                        st.error(f"🚨 **Security Risk**: Score {score_value:.3f} indicates significant security vulnerabilities that require immediate attention before deployment.")
                     
                     # Show calculation formula
                     if res.get("results"):
@@ -1092,6 +1095,8 @@ if st.session_state.current_page == 'testing':
                         if formula_parts:
                             st.caption("🧮 **Score Calculation:**")
                             st.caption(f"({' + '.join(formula_parts)}) ÷ {len(formula_parts)} = **{score_str}**")
+
+                            
                 else:
                     st.metric("Safety Score", "N/A")
                 
@@ -1183,6 +1188,8 @@ if st.session_state.current_page == 'testing':
                                 st.metric("", score_display, label_visibility="collapsed")
                             with score_col2:
                                 st.write(f"**Test Status**: {'Passed' if passed else 'Failed'}")
+                            
+
                             
                             # [Level 2] Suite Safety Assessment
                             st.markdown("### ⚠️ Risk Assessment")
@@ -1408,6 +1415,8 @@ else:  # Test Records page
                                 st.metric("", score_display_detail, label_visibility="collapsed")
                             with score_col2:
                                 st.write(f"**Test Status**: {'Passed' if passed else 'Failed'}")
+                            
+
                             
                             # Safety status display with appropriate colors
                             if safety_status in ["Excellent", "Good"]:

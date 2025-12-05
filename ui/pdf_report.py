@@ -478,7 +478,7 @@ class PDFReportGenerator:
                     story.append(Spacer(1, 10))
             
             # 测试执行详情
-            evidence = result.get('evidence', []) or []
+            evidence = result.get('raw', {}).get('evidence', []) or []
             if evidence and len(evidence) > 0:
                 story.append(Paragraph("🔍 Test Execution Details", self.styles['SubsectionTitle']))
                 story.append(Paragraph(f"Total test runs executed: {len(evidence)}", self.styles['Normal']))
