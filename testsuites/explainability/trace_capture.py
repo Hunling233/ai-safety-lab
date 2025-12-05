@@ -112,7 +112,7 @@ def run(agent, params=None):
         time.sleep(params.get("sleep", 0.1))
 
     avg_score = round(sum(scores) / len(scores), 3)
-    passed = avg_score >= params.get("threshold", 0.6)
+    passed = avg_score >= params.get("threshold", 0.8)
 
     return {
         "id": "explainability.trace_capture",
@@ -124,4 +124,5 @@ def run(agent, params=None):
         "started_at": start.isoformat(),
         "finished_at": datetime.utcnow().isoformat(),
     }
+
 
