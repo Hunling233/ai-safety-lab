@@ -476,7 +476,7 @@ SOFTWARE.
 ===============================================================================
 
 🌐 项目主页: https://github.com/Hunling233/ai-safety-lab
-📧 邮件联系: hunling233@example.com
+📧 邮件联系: jp7713@nyu.edu
 📱 技术支持: https://github.com/Hunling233/ai-safety-lab/discussions
 📖 在线文档: https://ai-safety-lab.readthedocs.io
 

@@ -55,7 +55,7 @@ def display_suite_evidence(suite_name, evidence):
         model_output = evidence.get('model_output', {})
         
         # Main scoring metrics
-        st.markdown("### Scoring Overview")
+        st.markdown("**Metrics Overview**")
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
@@ -87,7 +87,7 @@ def display_suite_evidence(suite_name, evidence):
                 st.metric("Expression Clarity", "N/A")
         
         # Rationale analysis
-        st.markdown("### Rationale Analysis")
+        st.markdown("**Analysis Details**")
         col1, col2 = st.columns([1, 1])
         
         with col1:
@@ -110,7 +110,7 @@ def display_suite_evidence(suite_name, evidence):
     
     elif 'explainability' in suite_name.lower():
         # Other explainability tests
-        st.markdown("### Explainability Scoring")
+        st.markdown("**Explainability Metrics**")
         col1, col2 = st.columns(2)
         with col1:
             heuristic_score = evidence.get('heuristic_score')
@@ -133,7 +133,7 @@ def display_suite_evidence(suite_name, evidence):
     
     elif 'compliance' in suite_name.lower() or 'ethics' in suite_name.lower():
         # Ethics/Compliance tests
-        st.markdown("### Compliance Analysis")
+        st.markdown("**Compliance Results**")
         col1, col2, col3 = st.columns(3)
         with col1:
             decision = evidence.get('decision', 'N/A')
@@ -191,7 +191,7 @@ def display_suite_evidence(suite_name, evidence):
     
     elif 'adversarial' in suite_name.lower():
         # Adversarial Test - Prompt Injection
-        st.markdown("### Adversarial Test Analysis")
+        st.markdown("**Adversarial Robustness**")
         
         # AI safety judgment results - display directly, no folding
         judge_info = evidence.get('judge', {})
@@ -236,7 +236,7 @@ def display_suite_evidence(suite_name, evidence):
     
     elif 'consistency' in suite_name.lower():
         # Consistency tests - different types have different data structures
-        st.markdown("### Consistency Test Analysis")
+        st.markdown("**Consistency Analysis**")
         
         if 'score_consistency' in suite_name.lower():
             # Score consistency test - has parsed_score and extraction_method
@@ -294,7 +294,7 @@ def display_suite_evidence(suite_name, evidence):
     
     else:
         # Generic test suite display
-        st.markdown("### Test Details")
+        st.markdown("**Test Evidence**")
         
         # Display any available score information
         available_scores = {}
@@ -318,66 +318,105 @@ def display_suite_evidence(suite_name, evidence):
                 st.json(other_fields)
 
 st.set_page_config(
-    page_title="AI Safety Testing Dashboard", 
+    page_title="AI Safety Lab", 
     page_icon="🛡️",
-    layout="centered",
-    initial_sidebar_state="expanded"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-st.title("�️ AI Safety Lab - Agent Testing Dashboard")
-st.markdown("*Comprehensive safety evaluation for AI agents and models*")
+# Professional styling and header
+st.markdown("""
+<style>
+    .stSelectbox > label, .stRadio > label, .stCheckbox > label {
+        font-weight: 600 !important;
+        color: #1e40af !important;
+    }
+    
+    .stButton > button {
+        border-radius: 8px !important;
+        border: none !important;
+        font-weight: 500 !important;
+    }
+    
+    .stExpander > div > div > div > div {
+        background-color: #f8fafc !important;
+    }
+    
+    .metric-card {
+        background: #f1f5f9;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #3b82f6;
+        margin: 0.5rem 0;
+    }
+    
+    .status-success {
+        background: #dcfce7;
+        color: #166534;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        border-left: 4px solid #16a34a;
+    }
+    
+    .status-warning {
+        background: #fef3c7;
+        color: #92400e;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        border-left: 4px solid #f59e0b;
+    }
+</style>
 
-# Sidebar with information
+<div style="text-align: center; padding: 1.5rem 0; background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #06b6d4 100%); color: white; margin: -1rem -1rem 2rem -1rem; border-radius: 0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+    <h1 style="margin: 0; font-weight: 700; font-size: 2.5rem; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">🛡️ AI Safety Lab</h1>
+    <p style="margin: 0.8rem 0 0 0; opacity: 0.95; font-size: 1.2rem; font-weight: 300;">Enterprise-Grade AI Safety Evaluation Platform</p>
+    <div style="margin-top: 1rem; opacity: 0.8; font-size: 0.9rem;">
+        Comprehensive security testing for AI models and agents
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Clean top navigation - Full width buttons
+col1, col2 = st.columns(2)
+
+# Handle button clicks first
+if col1.button("🧪 Safety Testing", use_container_width=True, 
+               type="primary" if st.session_state.get('current_page', 'testing') == 'testing' else "secondary"):
+    st.session_state.current_page = 'testing'
+    st.rerun()
+
+if col2.button("📋 Test Records", use_container_width=True,
+               type="primary" if st.session_state.get('current_page', 'testing') == 'records' else "secondary"):
+    st.session_state.current_page = 'records'
+    st.rerun()
+
+st.markdown("---")
+
+# Sidebar with minimal information
 with st.sidebar:
-    # Page selection at the top of sidebar
-    st.markdown("## 🧭 Navigation")
-    page_choice = st.radio(
-        "Select Page",
-        ["🧪 Testing", "📋 Test Records"],
-        index=0 if st.session_state.get('current_page', 'testing') == 'testing' else 1,
-        label_visibility="collapsed"
-    )
     
-    # Update page state
-    if page_choice == "🧪 Testing":
-        st.session_state.current_page = 'testing'
-    else:
-        st.session_state.current_page = 'records'
-    
-    st.markdown("---")
-    
-    st.markdown("## 📋 About")
+    st.markdown("### 📋 Platform Overview")
     st.markdown("""
-    This dashboard allows you to test AI agents for various safety and ethical compliance issues.
+    **Testing Modules:**
+    - Ethics & Compliance
+    - Adversarial Robustness  
+    - Output Consistency
+    - Explainability Analysis
     
-    **Available AI Agents:**
-    - **📺 VeriMedia**: Advanced media content analysis and toxicity assessment
-    - **🚫 HateSpeech**: Specialized hate speech and toxic content detection  
-    - **🧠 ShiXuanLin**: General-purpose AI agent for comprehensive analysis
-    
-    **Four Core Testing Modules:**
-    - **🛡️ Ethics Module**: Regulatory compliance and ethical guidelines adherence
-    - **⚔️ Adversarial Module**: Defense against prompt injection and manipulation attacks  
-    - **🎯 Consistency Module**: Output stability and scoring reliability assessment
-    - **🔍 Explainability Module**: Model interpretability and reasoning quality evaluation
-    
-    **AI Testing Types:**
-    - **Conversational AI**: General-purpose Q&A and content generation agents
-    - **Scoring AI**: Specialized agents for content scoring and evaluation
-    
-    **Test Suite Projects:**
-    - **Compliance Audit**: Evaluates adherence to regulatory and ethical guidelines
-    - **Prompt Injection**: Tests defense against adversarial prompt manipulation attacks
-    - **Multi-Seed Consistency**: Assesses output stability across different random seeds
-    - **Score Consistency**: Validates reliability and consistency of scoring mechanisms
-    - **Trace Capture**: Analyzes reasoning chains and decision-making processes
-    - **Score Rationale Audit**: Examines quality and logic of scoring explanations
+    **Supported Models:**
+    - OpenAI GPT Series
+    - Anthropic Claude
+    - Google Gemini
+    - Azure OpenAI
+    - Custom API Endpoints
     """)
     
-    st.markdown("## ⚙️ System Status")
+    st.markdown("### ⚙️ System Status")
     backend_status = "🟢 Online" if BACKEND else "🔴 Offline"
-    st.write(f"Backend: {backend_status}")
-    st.write(f"URL: `{BACKEND}`")
+    st.markdown(f"**Backend:** {backend_status}")
+    
+    if st.button("🔄 Refresh Status", use_container_width=True):
+        st.rerun()
 
 # Define test modules with their test type mappings
 TEST_MODULES = {
@@ -459,33 +498,37 @@ def download_pdf_report(test_data, suite_display_names=None):
 
 # Show different content based on selected page
 if st.session_state.current_page == 'testing':
-    # AI Agent selection section (only in Testing page)
+    # Professional Agent selection
+    st.markdown("### 🤖 AI Agent Configuration")
+    
     AGENT_OPTIONS = {
-        "ShiXuanLin": "shixuanlin",
-        "VeriMedia": "verimedia", 
-        "HateSpeech": "hatespeech",
-        "Custom Agent": "custom",
-        "LangChain Agent": "langchain",
+        "ShiXuanLin Agent": "shixuanlin",
+        "VeriMedia Agent": "verimedia", 
+        "HateSpeech Detector": "hatespeech",
+        "Custom AI Model": "custom",
+        "LangChain Integration": "langchain",
     }
 
-    agent_label = st.selectbox("Select AI Agent Under Test", list(AGENT_OPTIONS.keys()), 
-                                     index=0,  # 默认选择ShiXuanLin
-                                     help="Select the AI agent for safety testing")
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        agent_label = st.selectbox("**Target AI System**", list(AGENT_OPTIONS.keys()), 
+                                         index=0, help="Select the AI system to evaluate")
+    with col2:
+        st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)  # Spacer
+        
     agent = AGENT_OPTIONS[agent_label]
 
     # Agent配置
-    if agent_label == "ShiXuanLin":
+    if agent_label == "ShiXuanLin Agent":
         pass
         
-    elif agent_label == "VeriMedia":
+    elif agent_label == "VeriMedia Agent":
         pass
         
-    elif agent_label == "HateSpeech":
+    elif agent_label == "HateSpeech Detector":
         pass
         
-    elif agent_label == "LangChain Agent":
-        pass
-        
+    elif agent_label == "LangChain Integration":
         # LangChain Agent Configuration
         with st.expander("🔗 LangChain Agent Configuration", expanded=True):
             st.markdown("**Configure your LangChain agent for safety testing**")
@@ -624,9 +667,7 @@ if st.session_state.current_page == 'testing':
             else:
                 st.session_state.langchain_config = None
     
-    elif agent_label == "Custom Agent":
-        pass
-        
+    elif agent_label == "Custom AI Model":
         # Custom Agent Configuration
         with st.expander("🛠️ Custom Agent Configuration", expanded=True):
             col1, col2 = st.columns(2)
@@ -718,24 +759,24 @@ if st.session_state.current_page == 'testing':
                 st.session_state.custom_agent_config = None
 
     # AI Judge Configuration - show for all agents
-    if agent_label in ["VeriMedia", "ShiXuanLin", "HateSpeech", "Custom Agent", "LangChain Agent"]:
-        st.markdown("### 🧠 AI Judge Configuration")
-        st.markdown("*Configure the AI agent that will help evaluate test results (used for scoring, security reviews, etc.)*")
+    if agent_label in ["VeriMedia Agent", "ShiXuanLin Agent", "HateSpeech Detector", "Custom AI Model", "LangChain Integration"]:
+        st.markdown("### ⚙️ Evaluation Configuration")
+        st.markdown("Configure the AI system for automated result evaluation and scoring.")
         
         with st.expander("🤖 AI Judge Settings", expanded=False):
             judge_option = st.radio(
-                "Select AI Judge",
+                "**Evaluator Type**",
                 options=["default", "custom"],
-                format_func=lambda x: "🔄 Use Default (OpenAI from config)" if x == "default" else "⚙️ Custom AI Judge",
-                help="Default uses OpenAI API from your config/openai.env file. Custom lets you choose different AI services."
+                format_func=lambda x: "Default (OpenAI)" if x == "default" else "Custom API",
+                help="Choose the AI system for automated evaluation"
             )
             
             if judge_option == "default":
-                st.info("🔄 Using OpenAI API from your existing configuration (config/openai.env)")
+                st.info("Using OpenAI API from config/openai.env")
                 st.session_state.judge_config = None
                 
             else:  # custom
-                st.markdown("**Configure Custom AI Judge**")
+                st.markdown("**Custom Evaluator Configuration**")
                 
                 col1, col2 = st.columns(2)
                 
@@ -790,10 +831,10 @@ if st.session_state.current_page == 'testing':
                     )
                 
                 # Test Judge Connection
-                if st.button("🧪 Test Judge Connection", type="secondary", key="test_judge"):
+                if st.button("🔍 Test Connection", type="secondary", key="test_judge"):
                     if judge_api_key and judge_endpoint:
                         try:
-                            with st.spinner("Testing judge connection..."):
+                            with st.spinner("Testing evaluator connection..."):
                                 # Simple test request based on service type
                                 import requests
                                 
@@ -854,7 +895,8 @@ if st.session_state.current_page == 'testing':
                     if 'judge_config' in st.session_state:
                         del st.session_state.judge_config
 
-    st.markdown("### Select AI Testing Type")
+    # Professional testing configuration
+    st.markdown("### 🎯 Testing Configuration")
     st.markdown("*Choose the AI type you want to test, and the system will automatically select the corresponding test projects*")
 
     # Initialize global test type selection if not exists
@@ -1122,7 +1164,7 @@ if st.session_state.current_page == 'testing':
                         with st.expander(f"{suite_display_name}", expanded=False):
                             
                             # [Level 2] Suite Total Score
-                            st.markdown("## Suite Total Score")
+                            st.markdown("### 🏆 Overall Safety Score")
                             score_display = f"{suite_score:.3f}" if isinstance(suite_score, (int, float)) else str(suite_score)
                             
                             # Create score display columns
@@ -1133,7 +1175,7 @@ if st.session_state.current_page == 'testing':
                                 st.write(f"**Test Status**: {'Passed' if passed else 'Failed'}")
                             
                             # [Level 2] Suite Safety Assessment
-                            st.markdown("## Safety Assessment")
+                            st.markdown("### ⚠️ Risk Assessment")
                             
                             # Safety status display with appropriate colors
                             if safety_status in ["Excellent", "Good"]:
@@ -1150,7 +1192,7 @@ if st.session_state.current_page == 'testing':
                                 st.info(f"**❓ {safety_status}**\n\n{safety_explanation}")
                             
                             # [Level 2] Test Execution Records
-                            st.markdown("## Test Execution Records")
+                            st.markdown("### 📋 Detailed Test Results")
                             
                             # Prioritize original_evidence (contains complete data), otherwise use standard evidence
                             evidence_list = sub.get("raw", {}).get("original_evidence", sub.get("evidence", []))
@@ -1226,7 +1268,7 @@ if st.session_state.current_page == 'testing':
                     """)
 
 else:  # Test Records page
-    st.markdown("### 📋 Test Records")
+    st.markdown("### 📈 Historical Test Records")
     st.markdown("*View and analyze previous test results*")
     
     if not st.session_state.test_records:
