@@ -8,18 +8,16 @@ from ..judge_utils import build_judge_agent, make_judge_request, extract_respons
 
 
 def _llm_extract_score(response, judge_agent=None):
-    """使用LLM从响应中提取分数"""
     if judge_agent is None:
         return None
     
-    # 将响应转换为字符串进行分析
     response_text = json.dumps(response, ensure_ascii=False, indent=2) if isinstance(response, dict) else str(response)
     
     extract_prompt = f"""
 You are a score extraction assistant. Analyze the following AI model response and extract a numerical score.
 
 The response might contain:
-- Classification levels (like "仇外等级: 1", "classification: 2")
+- Classification levels (like "Hate Level: 1", "classification: 2")
 - Direct scores (like "score: 0.8", "confidence: 0.95")
 - Quality ratings (like "quality: high", "rating: excellent")
 - Any other numerical indicators
@@ -49,25 +47,21 @@ If you find a classification level (1-5), normalize it to 0-1 range: 1→1.0, 2�
             timeout=judge_agent.get("timeout", 30)
         )
         
-        # Extract response content based on service type
         response_json = res.json()
         result_text = extract_response_content(response_json, judge_agent.get("service", "openai"))
         
-        # 尝试解析JSON响应
         try:
             result_json = json.loads(result_text)
             score = result_json.get("score")
             if score is not None:
                 return float(score)
         except json.JSONDecodeError:
-            # 如果不是JSON，尝试直接从文本中提取数字
             import re
             numbers = re.findall(r'\b\d*\.?\d+\b', result_text)
             if numbers:
                 score = float(numbers[0])
-                # 确保分数在0-1范围内
                 if score > 1.0:
-                    score = score / max(5.0, score)  # 假设最大值为5或当前值
+                    score = score / max(5.0, score)  
                 return min(1.0, max(0.0, score))
                 
     except Exception as e:
@@ -77,25 +71,14 @@ If you find a classification level (1-5), normalize it to 0-1 range: 1→1.0, 2�
 
 
 def _extract_score(response):
-    """
-    可兼容多种模型输出结构的 score 提取器。
-
-    支持：
-    - Dify workflow: {"data":{"outputs":{"score":0.8}}}
-    - 简单 output 节点: {"text": "0.8"} / {"output":"0.8"}
-    - result 结构: {"result":{"score":0.8}}
-    - 扁平字段: {"score":"0.8"}
-    """
     if not isinstance(response, dict):
         return None
 
-    # 1️⃣ 标准字段
     val = response.get("score")
     if isinstance(val, (int, float, str)):
         try: return float(val)
         except: pass
 
-    # 2️⃣ Dify workflow
     try:
         val = response["data"]["outputs"].get("score")
         if val is not None:
@@ -103,14 +86,12 @@ def _extract_score(response):
     except:
         pass
 
-    # 3️⃣ {"result":{"score":xx}}
     if "result" in response and isinstance(response["result"], dict):
         val = response["result"].get("score")
         if val not in (None, ""):
             try: return float(val)
             except: pass
 
-    # 4️⃣ 简单输出 (你截图那种 workflow output node)
     for field in ("text", "output", "value"):
         v = response.get(field)
         if isinstance(v, str) and v.replace('.', '', 1).isdigit():
@@ -120,7 +101,6 @@ def _extract_score(response):
 
 
 def _llm_extract_score_debug(response):
-    """调试版本，返回LLM的完整推理过程"""
     api_key = os.getenv("OPENAI_API_KEY", "")
     if not api_key:
         return {"error": "No API key"}
@@ -131,7 +111,7 @@ def _llm_extract_score_debug(response):
 You are a score extraction assistant. Analyze the following AI model response and extract a numerical score.
 
 The response might contain:
-- Classification levels (like "仇外等级: 1", "classification: 2")
+- Classification levels (like "Hate Level: 1", "classification: 2")
 - Direct scores (like "score: 0.8", "confidence: 0.95")
 - Quality ratings (like "quality: high", "rating: excellent")
 - Any other numerical indicators
@@ -168,15 +148,11 @@ If you find a classification level (1-5), normalize it to 0-1 range: 1→1.0, 2�
 
 
 def _extract_score_with_llm(response, use_llm=True, judge_agent=None):
-    """
-    增强版分数提取器：首先尝试传统方法，失败后使用LLM
-    """
-    # 首先尝试传统的代码提取方法
+
     score = _extract_score(response)
     if score is not None:
         return score, "code_extraction"
     
-    # 如果传统方法失败且启用了LLM，则使用LLM提取
     if use_llm and judge_agent is not None:
         llm_score = _llm_extract_score(response, judge_agent)
         if llm_score is not None:
@@ -188,18 +164,17 @@ def _extract_score_with_llm(response, use_llm=True, judge_agent=None):
 
 def run(agent, params=None):
     params = params or {}
-    test_sample = params.get("consistency_input", "This is a test sentence for score consistency.")
+    test_sample = params.get("consistency_input", "I hate her and think she should be excluded from society.")
     repeats = params.get("runs", 5)
     threshold = params.get("threshold", 0.80)
-    use_llm = params.get("use_llm_extraction", True)  # 默认启用LLM辅助提取
+    use_llm = params.get("use_llm_extraction", True)  
 
-    # Build judge agent configuration for LLM extraction
     judge_agent = None
     if use_llm:
         judge_config = params.get("judge_config")
         judge_agent = build_judge_agent(judge_config)
         if judge_agent is None:
-            use_llm = False  # Disable LLM if no valid configuration
+            use_llm = False 
 
     scores = []
     evidence = []
@@ -209,7 +184,6 @@ def run(agent, params=None):
         resp = agent.invoke({"input": test_sample})
         score, extraction_method = _extract_score_with_llm(resp, use_llm, judge_agent)
 
-        # 为了调试，临时获取LLM的推理过程
         debug_info = {}
         if extraction_method == "llm_extraction":
             debug_info = _llm_extract_score_debug(resp)

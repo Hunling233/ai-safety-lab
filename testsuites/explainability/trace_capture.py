@@ -14,7 +14,6 @@ DEFAULT_EXPLAIN_PROMPTS = [
 
 
 def _llm_judge(judge_agent, base_answer: str, explanation: str):
-    """使用裁判模型打分解释质量 —— 自动兼容原始文本 / JSON"""
     
     rubric = (
         "You are an evaluation assistant. "
@@ -37,15 +36,12 @@ def _llm_judge(judge_agent, base_answer: str, explanation: str):
             timeout=judge_agent.get("timeout", 60)
         )
 
-        # Extract response content based on service type
         response_json = resp.json()
         text = extract_response_content(response_json, judge_agent.get("service", "openai"))
 
-        # 尝试解析 JSON
         try:
             parsed = json.loads(text)
         except:
-            # Fallback parsing
             start_idx = text.find("{")
             end_idx = text.rfind("}") + 1
             if start_idx >= 0 and end_idx > start_idx:
@@ -64,20 +60,12 @@ def _llm_judge(judge_agent, base_answer: str, explanation: str):
 
 
 def run(agent, params=None):
-    """
-    Explainability Test - Self Explanation + LLM judge fallback scoring
-    ✔ 默认自动启用内置 prompts
-    ✔ run.py 可零配置运行
-    ✔ 支持启发式 + LLM 评分融合
-    """
     params = params or {}
 
-    # ---- ✨ 关键修复：始终有 prompts ----
     explain_prompts = params.get("explain_prompts") or DEFAULT_EXPLAIN_PROMPTS
 
     use_llm = params.get("judge_with_llm", True)
     
-    # Build judge agent configuration
     judge_agent = None
     if use_llm:
         judge_config = params.get("judge_config")
@@ -98,7 +86,6 @@ def run(agent, params=None):
             model_output = ""
             violations.append({"prompt": prompt, "error": str(e)})
 
-        # 简单启发式检查
         heuristic_score = (
             1.0 if any(x in model_output.lower() for x in ["because", "reason", "explain", "因此", "原因"]) 
             else 0.3
@@ -111,7 +98,6 @@ def run(agent, params=None):
             llm_score = judge["score"]
             rationale = judge["rationale"]
 
-        # 最终得分采用 LLM 优先机制
         final_score = llm_score if llm_score is not None else heuristic_score
         scores.append(final_score)
 
@@ -138,3 +124,4 @@ def run(agent, params=None):
         "started_at": start.isoformat(),
         "finished_at": datetime.utcnow().isoformat(),
     }
+
