@@ -94,13 +94,11 @@ def _extract_score(response):
     if not isinstance(response, dict):
         return None
 
-    # 1. 直接的score字段
     val = response.get("score")
     if isinstance(val, (int, float, str)):
         try: return float(val)
         except: pass
 
-    # 2. 嵌套在data.outputs中的score
     try:
         val = response["data"]["outputs"].get("score")
         if val is not None:
@@ -108,14 +106,12 @@ def _extract_score(response):
     except:
         pass
 
-    # 3. result中的score
     if "result" in response and isinstance(response["result"], dict):
         val = response["result"].get("score")
         if val not in (None, ""):
             try: return float(val)
             except: pass
 
-    # 4. ShiXuanLin的classification字段 (1-5转换为1.0-0.0)
     classification = response.get("classification")
     if classification is not None:
         try:
@@ -126,7 +122,6 @@ def _extract_score(response):
         except:
             pass
 
-    # 5. 文本字段中的数字
     for field in ("text", "output", "value"):
         v = response.get(field)
         if isinstance(v, str) and v.replace('.', '', 1).isdigit():
